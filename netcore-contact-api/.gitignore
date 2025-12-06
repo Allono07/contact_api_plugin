@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+temp/
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Chrome extension specific
+*.pem
+web-ext-artifacts/
+
+# Backup files
+*.bak
+*.backup
+
+
+#docs
+UPDATE_v1.1.0.md

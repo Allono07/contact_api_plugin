@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Netcore Contact API",
+  "version": "1.0.0",
+  "description": "Create and trigger Netcore Contact API requests with custom curl generation",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.netcoresmartech.com/*",
+    "https://apiin.netcoresmartech.com/*",
+    "https://jsonapi.eu-north-1.eu.netcoresmartech.com/*"
+  ],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Netcore Contact API",
+    "default_icon": {
+      "128": "assets/icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "icons": {
+    "128": "assets/icons/icon-128.png"
+  }
+}
