@@ -122,4 +122,68 @@ class APIHandler {
             });
         });
     }
+
+    /**
+     * Build Activity API payload with multiple activities
+     * @param {string} assetId - Static asset ID for all activities
+     * @param {string} identity - Static identity for all activities
+     * @param {string} activitySource - Static activity source (app/web)
+     * @param {Array} activities - Array of activity objects with activity_name and activity_params
+     */
+    static buildActivityPayload(assetId, identity, activitySource, activities) {
+        const now = new Date();
+        const timestamp = now.toISOString().slice(0, 19);
+
+        // Build payload array with all activities
+        return activities.map(activity => ({
+            asset_id: assetId,
+            activity_name: activity.activity_name,
+            timestamp: timestamp,
+            identity: identity,
+            activity_source: activitySource,
+            activity_params: activity.activity_params
+        }));
+    }
+
+    /**
+     * Generate cURL for Activity API with region
+     */
+    static generateActivityCurl(bearerToken, region, payload) {
+        const endpoint = ACTIVITY_ENDPOINTS[region] || ACTIVITY_ENDPOINTS.us;
+        const payloadStr = JSON.stringify(payload);
+        
+        let curl = `curl --location '${endpoint}' \\`;
+        curl += `\n  --header 'Authorization: Bearer ${bearerToken}' \\`;
+        curl += `\n  --header 'Content-Type: application/json' \\`;
+        curl += `\n  --data '${payloadStr}'`;
+
+        return curl;
+    }
+
+    /**
+     * Trigger Activity API request via background script with region
+     */
+    static async triggerActivityAPI(bearerToken, region, payload) {
+        const endpoint = ACTIVITY_ENDPOINTS[region] || ACTIVITY_ENDPOINTS.us;
+        
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+                {
+                    action: 'triggerActivityAPI',
+                    endpoint: endpoint,
+                    bearerToken: bearerToken,
+                    payload: payload
+                },
+                (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else if (response && response.success) {
+                        resolve(response.data);
+                    } else {
+                        reject(new Error(response?.error || 'Unknown error occurred'));
+                    }
+                }
+            );
+        });
+    }
 }

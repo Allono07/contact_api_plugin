@@ -29,55 +29,122 @@
         <!-- Form Tab -->
         <div class="tab-content active" id="form-tab">
             <div class="form-container">
-                <!-- Region Selection -->
-                <div class="form-group">
-                    <label for="region">Region *</label>
-                    <select id="region">
-                        <option value="">Select Region</option>
-                        <option value="us">US (api.netcoresmartech.com)</option>
-                        <option value="in">India (apiin.netcoresmartech.com)</option>
-                        <option value="eu">EU (jsonapi.eu-north-1.eu.netcoresmartech.com)</option>
-                    </select>
+                <!-- API Type Switcher -->
+                <div class="api-type-selector">
+                    <button class="api-type-btn active" data-api="contact">Contact API</button>
+                    <button class="api-type-btn" data-api="activity">Activity API</button>
                 </div>
 
-                <!-- API Key -->
-                <div class="form-group">
-                    <label for="apiKey">API Key *</label>
-                    <input type="password" id="apiKey" placeholder="Enter your API key">
-                    <button id="toggleApiKey" class="toggle-btn">Show</button>
-                </div>
-
-                <!-- Activity Selection -->
-                <div class="form-group">
-                    <label for="activity">Activity *</label>
-                    <select id="activity">
-                        <option value="">Select Activity</option>
-                        <option value="add">Add</option>
-                        <option value="update">Update</option>
-                        <option value="delete">Delete</option>
-                        <option value="addsync">Add Sync (Synchronous API)</option>
-                    </select>
-                </div>
-
-                <!-- List ID -->
-                <div class="form-group">
-                    <label for="listId">List ID (Optional)</label>
-                    <input type="number" id="listId" placeholder="Leave empty if not needed">
-                </div>
-
-                <!-- Dynamic Attributes Section -->
-                <div class="form-group">
-                    <label>Contact Attributes</label>
-                    <div id="attributesContainer" class="attributes-container">
-                        <!-- Attributes will be added here dynamically -->
+                <!-- Contact API Section -->
+                <div class="api-section active" id="contact-section">
+                    <!-- Region Selection -->
+                    <div class="form-group">
+                        <label for="region">Region *</label>
+                        <select id="region">
+                            <option value="">Select Region</option>
+                            <option value="us">US (api.netcoresmartech.com)</option>
+                            <option value="in">India (apiin.netcoresmartech.com)</option>
+                            <option value="eu">EU (jsonapi.eu-north-1.eu.netcoresmartech.com)</option>
+                        </select>
                     </div>
-                    <button id="addAttributeBtn" class="btn btn-secondary">+ Add Attribute</button>
+
+                    <!-- API Key -->
+                    <div class="form-group">
+                        <label for="apiKey">API Key *</label>
+                        <input type="password" id="apiKey" placeholder="Enter your API key">
+                        <button id="toggleApiKey" class="toggle-btn">Show</button>
+                    </div>
+
+                    <!-- Activity Selection -->
+                    <div class="form-group">
+                        <label for="activity">Activity *</label>
+                        <select id="activity">
+                            <option value="">Select Activity</option>
+                            <option value="add">Add</option>
+                            <option value="update">Update</option>
+                            <option value="delete">Delete</option>
+                            <option value="addsync">Add Sync (Synchronous API)</option>
+                        </select>
+                    </div>
+
+                    <!-- List ID -->
+                    <div class="form-group">
+                        <label for="listId">List ID (Optional)</label>
+                        <input type="number" id="listId" placeholder="Leave empty if not needed">
+                    </div>
+
+                    <!-- Dynamic Attributes Section -->
+                    <div class="form-group">
+                        <label>Contact Attributes</label>
+                        <div id="attributesContainer" class="attributes-container">
+                            <!-- Attributes will be added here dynamically -->
+                        </div>
+                        <button id="addAttributeBtn" class="btn btn-secondary">+ Add Attribute</button>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="actions">
+                        <button id="generateCurlBtn" class="btn btn-primary">Generate cURL</button>
+                        <button id="triggerApiBtn" class="btn btn-success">Trigger API</button>
+                    </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="actions">
-                    <button id="generateCurlBtn" class="btn btn-primary">Generate cURL</button>
-                    <button id="triggerApiBtn" class="btn btn-success">Trigger API</button>
+                <!-- Activity API Section -->
+                <div class="api-section" id="activity-section">
+                    <!-- API Key -->
+                    <div class="form-group">
+                        <label for="activityApiKey">Bearer Token *</label>
+                        <input type="password" id="activityApiKey" placeholder="Enter your Bearer token">
+                        <button id="toggleActivityApiKey" class="toggle-btn">Show</button>
+                    </div>
+
+                    <!-- Region Selector -->
+                    <div class="form-group">
+                        <label for="activityRegion">Region *</label>
+                        <select id="activityRegion">
+                            <option value="">Select Region</option>
+                            <option value="us">US</option>
+                            <option value="in">India</option>
+                            <option value="eu">EU</option>
+                        </select>
+                    </div>
+
+                    <!-- Asset ID -->
+                    <div class="form-group">
+                        <label for="assetId">Asset ID *</label>
+                        <input type="text" id="assetId" placeholder="Enter asset ID">
+                    </div>
+
+                    <!-- Identity -->
+                    <div class="form-group">
+                        <label for="identity">Identity *</label>
+                        <input type="text" id="identity" placeholder="Enter identity (phone/email)">
+                    </div>
+
+                    <!-- Activity Source -->
+                    <div class="form-group">
+                        <label for="activitySource">Activity Source *</label>
+                        <select id="activitySource">
+                            <option value="">Select Source</option>
+                            <option value="app">App</option>
+                            <option value="web">Web</option>
+                        </select>
+                    </div>
+
+                    <!-- Activities Container -->
+                    <div class="form-group">
+                        <label>Activities</label>
+                        <div id="activitiesContainer" class="activities-container">
+                            <!-- Activity rows will be added dynamically -->
+                        </div>
+                        <button id="addActivityBtn" class="btn btn-secondary">+ Add Activity</button>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="actions">
+                        <button id="generateActivityCurlBtn" class="btn btn-primary">Generate cURL</button>
+                        <button id="triggerActivityApiBtn" class="btn btn-success">Trigger API</button>
+                    </div>
                 </div>
             </div>
         </div>

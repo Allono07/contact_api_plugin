@@ -93,6 +93,48 @@ body {
     display: block;
 }
 
+/* API Type Selector */
+.api-type-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.api-type-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: white;
+    color: #000000;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.api-type-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.api-type-btn.active {
+    background-color: #FC5E02;
+    color: white;
+    border-color: #FC5E02;
+}
+
+/* API Section */
+.api-section {
+    display: none;
+}
+
+.api-section.active {
+    display: block;
+}
+
 /* Form Groups */
 .form-group {
     margin-bottom: 16px;

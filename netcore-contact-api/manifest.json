@@ -9,7 +9,8 @@
   "host_permissions": [
     "https://api.netcoresmartech.com/*",
     "https://apiin.netcoresmartech.com/*",
-    "https://jsonapi.eu-north-1.eu.netcoresmartech.com/*"
+    "https://jsonapi.eu-north-1.eu.netcoresmartech.com/*",
+    "https://api2.netcoresmartech.com/*"
   ],
   "action": {
     "default_popup": "src/popup.html",
