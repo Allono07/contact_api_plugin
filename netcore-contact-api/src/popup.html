@@ -134,6 +134,11 @@
                     <!-- Activities Container -->
                     <div class="form-group">
                         <label>Activities</label>
+                        <div style="margin-bottom: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px;">
+                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">Or upload CSV file to auto-generate activities</p>
+                            <input type="file" id="csvFileInput" accept=".csv" style="margin-bottom: 8px;">
+                            <button id="uploadCsvBtn" class="btn btn-secondary" style="width: 100%;">Upload & Parse CSV</button>
+                        </div>
                         <div id="activitiesContainer" class="activities-container">
                             <!-- Activity rows will be added dynamically -->
                         </div>
@@ -186,6 +191,7 @@
     <script src="js/modules/constants.js"></script>
     <script src="js/modules/utils.js"></script>
     <script src="js/modules/api-handler.js"></script>
+    <script src="js/modules/csv-parser.js"></script>
     <script src="js/modules/ui-manager.js"></script>
     <script src="js/popup.js"></script>
 </body>

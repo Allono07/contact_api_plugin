@@ -20,11 +20,13 @@ class UIManager {
         const generateActivityCurlBtn = document.getElementById('generateActivityCurlBtn');
         const triggerActivityApiBtn = document.getElementById('triggerActivityApiBtn');
         const toggleActivityApiKey = document.getElementById('toggleActivityApiKey');
+        const uploadCsvBtn = document.getElementById('uploadCsvBtn');
 
         if (addActivityBtn) addActivityBtn.addEventListener('click', () => this.addActivityRow());
         if (generateActivityCurlBtn) generateActivityCurlBtn.addEventListener('click', () => this.handleGenerateActivityCurl());
         if (triggerActivityApiBtn) triggerActivityApiBtn.addEventListener('click', () => this.handleTriggerActivityAPI());
         if (toggleActivityApiKey) toggleActivityApiKey.addEventListener('click', () => this.toggleActivityApiKeyVisibility());
+        if (uploadCsvBtn) uploadCsvBtn.addEventListener('click', () => this.handleCSVUpload());
 
         // Response listeners
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
@@ -355,6 +357,58 @@ class UIManager {
             apiKeyInput.type = 'password';
             toggleBtn.textContent = 'Show';
         }
+    }
+
+    /**
+     * Handle CSV File Upload
+     */
+    handleCSVUpload() {
+        const fileInput = document.getElementById('csvFileInput');
+        const statusMessage = document.getElementById('statusMessage');
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            Utils.showStatus(statusMessage, 'Please select a CSV file', 'error', 4000);
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const csvContent = e.target.result;
+                const parsedActivities = CSVParser.parseCSV(csvContent);
+
+                if (parsedActivities.length === 0) {
+                    Utils.showStatus(statusMessage, 'No valid activities found in CSV', 'error', 4000);
+                    return;
+                }
+
+                // Clear existing activities
+                document.getElementById('activitiesContainer').innerHTML = '';
+
+                // Add parsed activities to form
+                parsedActivities.forEach(activity => {
+                    this.addActivityRow(activity.name, activity.params);
+                });
+
+                // Save form state
+                this.saveFormState();
+
+                Utils.showStatus(statusMessage, `Successfully loaded ${parsedActivities.length} activities from CSV`, 'success', 4000);
+                
+                // Clear file input
+                fileInput.value = '';
+            } catch (error) {
+                Utils.showStatus(statusMessage, `CSV Parse Error: ${error.message}`, 'error', 5000);
+            }
+        };
+
+        reader.onerror = () => {
+            Utils.showStatus(statusMessage, 'Error reading file', 'error', 4000);
+        };
+
+        reader.readAsText(file);
     }
 
     /**
