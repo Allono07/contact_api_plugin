@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Netcore Contact API",
-  "version": "1.0.0",
-  "description": "Create and trigger Netcore Contact API requests with custom curl generation",
+  "name": "Netcore Contact/Activity API",
+  "version": "1.0.1",
+  "description": "Create and trigger Netcore Contact/Activity API requests with custom curl generation",
   "permissions": [
     "storage"
   ],
@@ -14,7 +14,7 @@
   ],
   "action": {
     "default_popup": "src/popup.html",
-    "default_title": "Netcore Contact API",
+    "default_title": "Netcore Contact/Activity API",
     "default_icon": {
       "128": "assets/icons/icon-128.png"
     }
