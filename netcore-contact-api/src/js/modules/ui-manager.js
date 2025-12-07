@@ -28,7 +28,7 @@ class UIManager {
         if (triggerActivityApiBtn) triggerActivityApiBtn.addEventListener('click', () => this.handleTriggerActivityAPI());
         if (toggleActivityApiKey) toggleActivityApiKey.addEventListener('click', () => this.toggleActivityApiKeyVisibility());
         if (uploadCsvBtn) uploadCsvBtn.addEventListener('click', () => this.handleCSVUpload());
-        if (clearActivityFormBtn) clearActivityFormBtn.addEventListener('click', () => this.clearActivityForm());
+        if (clearActivityFormBtn) clearActivityFormBtn.addEventListener('click', () => this.handleClearActivityForm());
 
         // Response listeners
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
@@ -401,7 +401,7 @@ class UIManager {
     }
 
     /**
-     * Show CSV Preview in Table Format with Editing
+     * Show CSV Preview in Table Format
      */
     showCSVPreview(parsedActivities, fileInput, statusMessage) {
         let previewContainer = document.getElementById('csvPreviewContainer');
@@ -430,19 +430,12 @@ class UIManager {
                     String(param.value);
 
                 const typeClass = typeLabel.toLowerCase().replace(/\\s+/g, '');
-                const rowId = `csv-row-${actIndex}-${paramIndex}`;
-                
                 tableRows += `
-                    <tr id="${rowId}">
-                        ${paramIndex === 0 ? `<td rowspan="${paramKeys.length}" style="font-weight: 600; background-color: #f0f0f0; vertical-align: top;">${activity.name}</td>` : ''}
+                    <tr>
+                        ${paramIndex === 0 ? `<td rowspan=\"${paramKeys.length}\" style=\"font-weight: 600; background-color: #f0f0f0; vertical-align: top;\">${activity.name}</td>` : ''}
                         <td><strong>${paramKey}</strong></td>
                         <td><span class="csv-param-type ${typeClass}">${typeLabel}</span></td>
-                        <td>
-                            <input type="text" class="csv-value-input" data-activity-idx="${actIndex}" data-param-key="${paramKey}" value="${this.escapeHtml(sampleValue)}" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px;">
-                        </td>
-                        <td style="text-align: center;">
-                            <button class="btn-edit-param" data-activity-idx="${actIndex}" data-param-key="${paramKey}" title="Edit" style="padding: 4px 8px; background-color: #0066cc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">✎</button>
-                        </td>
+                        <td title="${sampleValue}">${this.truncateText(sampleValue, 30)}</td>
                     </tr>
                 `;
             });
@@ -454,20 +447,16 @@ class UIManager {
                 <table class="csv-preview-table">
                     <thead>
                         <tr>
-                            <th style="width: 20%;">Activity</th>
-                            <th style="width: 20%;">Parameter</th>
-                            <th style="width: 15%;">Type</th>
-                            <th style="width: 35%;">Sample Value (Editable)</th>
-                            <th style="width: 10%;">Action</th>
+                            <th style="width: 25%;">Activity</th>
+                            <th style="width: 25%;">Parameter</th>
+                            <th style="width: 20%;">Type</th>
+                            <th style="width: 30%;">Sample Value</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${tableRows}
                     </tbody>
                 </table>
-                <div style="padding: 12px 16px; background-color: #f9f9f9; border-top: 1px solid #ddd; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn-add-param-csv" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">+ Add Parameter</button>
-                </div>
                 <div class="csv-preview-actions">
                     <button class="btn-apply-csv" id="applyCSVBtn">✓ Apply & Load Activities</button>
                     <button class="btn-cancel-csv" id="cancelCSVBtn">✕ Cancel</button>
@@ -478,24 +467,6 @@ class UIManager {
         // Store parsed activities for later use
         this._csvData = { activities: parsedActivities, fileInput, statusMessage };
 
-        // Event listeners for inline editing
-        document.querySelectorAll('.csv-value-input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const activityIdx = parseInt(e.target.dataset.activityIdx);
-                const paramKey = e.target.dataset.paramKey;
-                const newValue = e.target.value;
-                
-                if (parsedActivities[activityIdx] && parsedActivities[activityIdx].params[paramKey]) {
-                    parsedActivities[activityIdx].params[paramKey].value = newValue;
-                }
-            });
-        });
-
-        // Add parameter to specific activity
-        document.querySelector('.btn-add-param-csv').addEventListener('click', () => {
-            this.showAddParameterDialog(parsedActivities, previewContainer);
-        });
-
         document.getElementById('applyCSVBtn').addEventListener('click', () => {
             this.applyCSVData(parsedActivities, fileInput, statusMessage);
         });
@@ -504,98 +475,6 @@ class UIManager {
             previewContainer.innerHTML = '';
             fileInput.value = '';
         });
-    }
-
-    /**
-     * Show dialog to add parameter to an activity
-     */
-    showAddParameterDialog(parsedActivities, previewContainer) {
-        const activityNames = [...new Set(parsedActivities.map(a => a.name))];
-        
-        const dialog = document.createElement('div');
-        dialog.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        `;
-        
-        dialog.innerHTML = `
-            <div style="background-color: white; border-radius: 8px; padding: 20px; max-width: 400px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
-                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #000;">Add Parameter</h3>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 12px;">Activity</label>
-                    <select id="addParamActivity" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px;">
-                        ${activityNames.map(name => `<option value="${name}">${name}</option>`).join('')}
-                    </select>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 12px;">Parameter Name</label>
-                    <input type="text" id="addParamName" placeholder="e.g., user_type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;">
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 12px;">Type</label>
-                    <select id="addParamType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px;">
-                        <option value="${DATA_TYPES.string}">String</option>
-                        <option value="${DATA_TYPES.number}">Number</option>
-                        <option value="${DATA_TYPES.float}">Float</option>
-                        <option value="${DATA_TYPES.date}">Date</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 12px;">Value</label>
-                    <input type="text" id="addParamValue" placeholder="e.g., Sample Text" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;">
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button id="addParamConfirm" style="flex: 1; padding: 8px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600; font-size: 12px;">Add</button>
-                    <button id="addParamCancel" style="flex: 1; padding: 8px; background-color: #ddd; color: #000; border: none; border-radius: 3px; cursor: pointer; font-weight: 600; font-size: 12px;">Cancel</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(dialog);
-        
-        document.getElementById('addParamConfirm').addEventListener('click', () => {
-            const activityName = document.getElementById('addParamActivity').value;
-            const paramName = document.getElementById('addParamName').value.trim();
-            const paramType = document.getElementById('addParamType').value;
-            const paramValue = document.getElementById('addParamValue').value.trim();
-            
-            if (!paramName || !paramValue) {
-                alert('Please fill in all fields');
-                return;
-            }
-            
-            const activity = parsedActivities.find(a => a.name === activityName);
-            if (activity) {
-                activity.params[paramName] = {
-                    value: paramValue,
-                    dataType: paramType,
-                    arrayItems: null
-                };
-                document.body.removeChild(dialog);
-                this.showCSVPreview(parsedActivities, this._csvData.fileInput, this._csvData.statusMessage);
-            }
-        });
-        
-        document.getElementById('addParamCancel').addEventListener('click', () => {
-            document.body.removeChild(dialog);
-        });
-    }
-
-    /**
-     * Escape HTML special characters
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     /**
@@ -624,24 +503,6 @@ class UIManager {
             fileInput.value = '';
         } catch (error) {
             Utils.showStatus(statusMessage, `Error loading activities: ${error.message}`, 'error', 5000);
-        }
-    }
-
-    /**
-     * Clear Activity Form Data
-     */
-    clearActivityForm() {
-        const statusMessage = document.getElementById('statusMessage');
-        
-        if (confirm('Are you sure you want to clear all activities and form data? This cannot be undone.')) {
-            document.getElementById('activitiesContainer').innerHTML = '';
-            document.getElementById('csvFileInput').value = '';
-            const previewContainer = document.getElementById('csvPreviewContainer');
-            if (previewContainer) {
-                previewContainer.innerHTML = '';
-            }
-            this.saveFormState();
-            Utils.showStatus(statusMessage, '✓ Form cleared', 'success', 3000);
         }
     }
 
@@ -766,11 +627,47 @@ class UIManager {
                 response: formattedResponse.body,
                 status: formattedResponse.status
             });
-
             this.displayResponse(formattedResponse);
             Utils.showStatus(statusMessage, 'Activity API triggered successfully!', 'success');
         } catch (error) {
             Utils.showStatus(statusMessage, `Error: ${error.message}`, 'error', 4000);
+        }
+    }
+
+    /**
+     * Handle Clear Activity Form
+     */
+    handleClearActivityForm() {
+        const statusMessage = document.getElementById('statusMessage');
+        
+        // Show confirmation dialog
+        const confirmed = confirm('Are you sure you want to clear all activities? This action cannot be undone.');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            // Clear all activities
+            document.getElementById('activitiesContainer').innerHTML = '';
+            
+            // Clear CSV preview if any
+            const csvPreviewContainer = document.getElementById('csvPreviewContainer');
+            if (csvPreviewContainer) {
+                csvPreviewContainer.innerHTML = '';
+            }
+            
+            // Clear file input
+            const csvFileInput = document.getElementById('csvFileInput');
+            if (csvFileInput) {
+                csvFileInput.value = '';
+            }
+            
+            // Save form state (empty)
+            this.saveFormState();
+            
+            Utils.showStatus(statusMessage, '✓ Form cleared successfully', 'success', 3000);
+        } catch (error) {
+            Utils.showStatus(statusMessage, `Error clearing form: ${error.message}`, 'error', 4000);
         }
     }
 
