@@ -75,7 +75,7 @@ class CSVParser {
                 // Regular parameter
                 activities[lastActivityName].activity_params[paramKey] = {
                     value: sampleValue,
-                    dataType: dataType
+                    dataType: this.mapDataType(dataType)
                 };
             }
         }
