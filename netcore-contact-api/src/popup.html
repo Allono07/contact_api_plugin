@@ -134,10 +134,12 @@
                     <!-- Activities Container -->
                     <div class="form-group">
                         <label>Activities</label>
-                        <div style="margin-bottom: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px;">
+                        <div class="csv-upload-section">
                             <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">Or upload CSV file to auto-generate activities</p>
-                            <input type="file" id="csvFileInput" accept=".csv" style="margin-bottom: 8px;">
-                            <button id="uploadCsvBtn" class="btn btn-secondary" style="width: 100%;">Upload & Parse CSV</button>
+                            <div class="csv-upload-controls">
+                                <input type="file" id="csvFileInput" accept=".csv">
+                                <button id="uploadCsvBtn" class="btn-csv-upload">📤 Upload CSV</button>
+                            </div>
                         </div>
                         <div id="activitiesContainer" class="activities-container">
                             <!-- Activity rows will be added dynamically -->
@@ -149,6 +151,7 @@
                     <div class="actions">
                         <button id="generateActivityCurlBtn" class="btn btn-primary">Generate cURL</button>
                         <button id="triggerActivityApiBtn" class="btn btn-success">Trigger API</button>
+                        <button id="clearActivityFormBtn" class="btn btn-danger" title="Clear all activities and form data">Clear Form</button>
                     </div>
                 </div>
             </div>
