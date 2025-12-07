@@ -436,12 +436,22 @@ class UIManager {
             const response = await APIHandler.triggerActivityAPI(bearerToken, region, payload);
             const formattedResponse = APIHandler.formatResponse(response);
 
-            // Add to history with apiType='activity'
+            // Store the exact request data for history restoration
+            const historyPayload = JSON.parse(JSON.stringify(payload)); // Deep copy to preserve exact state
+            
+            // Get the complete form data to store (same structure as activityFormData)
+            const completeActivityData = this.getActivityFormData();
+
+            // Add to history with apiType='activity' and full activity details
             this.addToHistory({
                 apiType: 'activity',
                 region: region,
-                activity: `Multiple activities (${activities.length})`,
+                activity: `Events Count (${activities.length})`,
                 listId: assetId,
+                identity: identity,
+                activitySource: activitySource,
+                activities: completeActivityData.activities,
+                historyPayload: historyPayload,
                 attributes: activities.map(a => a.activity_name),
                 response: formattedResponse.body,
                 status: formattedResponse.status
@@ -796,6 +806,15 @@ class UIManager {
                 response: callData.response,
                 status: callData.status
             };
+            
+            // For Activity API calls, store additional fields needed for history restoration
+            if (callData.apiType === 'activity') {
+                call.identity = callData.identity;
+                call.activitySource = callData.activitySource;
+                call.activities = callData.activities;
+                call.historyPayload = callData.historyPayload;
+            }
+            
             history.unshift(call);
             if (history.length > 50) history.pop();
             chrome.storage.local.set({ callHistory: history });
@@ -821,6 +840,7 @@ class UIManager {
                 const apiType = call.apiType || 'contact';
                 const apiLabel = apiType === 'activity' ? 'ACTIVITY API' : 'CONTACT API';
                 const attributesText = Array.isArray(call.attributes) ? call.attributes.length : 0;
+                const buttonText = apiType === 'activity' ? 'View cURL' : 'Restore';
                 
                 return `
                     <div class="history-item" data-call-id="${call.id}" data-api-type="${apiType}" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fafafa;">
@@ -835,7 +855,7 @@ class UIManager {
                         <div class="history-details" style="margin-bottom: 8px;">
                             <small style="color: #999;">${call.region} | ${attributesText} ${apiType === 'activity' ? 'activities' : 'attributes'}</small>
                         </div>
-                        <button class="btn-history-restore" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Restore</button>
+                        <button class="btn-history-restore" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">${buttonText}</button>
                     </div>
                 `;
             }).join('');
@@ -870,15 +890,82 @@ class UIManager {
                             }
                         });
                     }
+                    this.saveFormState();
+                    Utils.showStatus(document.getElementById('statusMessage'), 'History restored!', 'success');
                 } else if (apiType === 'activity') {
-                    Utils.showStatus(document.getElementById('statusMessage'), 'Activity API calls cannot be directly restored. Please recreate the activities manually.', 'info', 4000);
-                    return;
+                    // Generate cURL for Activity API from history
+                    this.generateActivityCurlFromHistory(call);
                 }
-                
-                this.saveFormState();
-                Utils.showStatus(document.getElementById('statusMessage'), 'History restored!', 'success');
             }
         });
+    }
+
+    /**
+     * Generate Activity API cURL from history data
+     */
+    generateActivityCurlFromHistory(call) {
+        try {
+            const statusMessage = document.getElementById('statusMessage');
+            
+            console.log('History call data:', call);
+            console.log('historyPayload from history:', call.historyPayload);
+            
+            // If we have the exact payload from history, use it directly (most reliable)
+            if (call.historyPayload && Array.isArray(call.historyPayload) && call.historyPayload.length > 0) {
+                const bearerToken = document.getElementById('activityApiKey').value.trim();
+                if (!bearerToken) {
+                    Utils.showStatus(statusMessage, 'Please enter your Activity API Bearer Token to generate cURL', 'warning', 4000);
+                    return;
+                }
+
+                // Generate cURL directly from stored payload
+                const curl = APIHandler.generateActivityCurl(bearerToken, call.region, call.historyPayload);
+                this.displayCurl(curl);
+                
+                // Show informative message
+                const numActivities = call.historyPayload.length;
+                const message = `Activity API cURL generated from history (${numActivities} activities restored with full parameters)`;
+                Utils.showStatus(statusMessage, message, 'info', 5000);
+                return;
+            }
+            
+            // Fallback: reconstruct from activities or activity names
+            const activities = call.activities && call.activities.length > 0 ? call.activities : (
+                Array.isArray(call.attributes) ? call.attributes.map(actName => ({
+                    activity_name: actName,
+                    activity_params: {}
+                })) : []
+            );
+            
+            if (activities.length === 0) {
+                Utils.showStatus(statusMessage, 'No activity data available in history', 'error', 4000);
+                return;
+            }
+
+            // Use stored identity and source, or fallback to defaults
+            const identity = call.identity || 'restored_identity';
+            const activitySource = call.activitySource || 'history_restore';
+
+            // Build payload using API Handler
+            const payload = APIHandler.buildActivityPayload(call.listId, identity, activitySource, activities);
+            
+            // Get bearer token from form (user needs to provide it)
+            const bearerToken = document.getElementById('activityApiKey').value.trim();
+            if (!bearerToken) {
+                Utils.showStatus(statusMessage, 'Please enter your Activity API Bearer Token to generate cURL', 'warning', 4000);
+                return;
+            }
+
+            // Generate cURL
+            const curl = APIHandler.generateActivityCurl(bearerToken, call.region, payload);
+            this.displayCurl(curl);
+            
+            // Show informative message
+            const message = `Activity API cURL generated from history (${activities.length} activities). Identity: ${identity}, Source: ${activitySource}`;
+            Utils.showStatus(statusMessage, message, 'info', 5000);
+        } catch (error) {
+            Utils.showStatus(document.getElementById('statusMessage'), `Error: ${error.message}`, 'error', 4000);
+        }
     }
 
     /**
