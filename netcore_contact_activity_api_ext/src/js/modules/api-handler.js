@@ -49,12 +49,12 @@ class APIHandler {
         let curl = `curl -X POST "${endpoint}?${this.buildQueryString(queryParams)}"`;
 
         // Add headers
-        curl += ` \\\n  -H "Content-Type: application/x-www-form-urlencoded"`;
+        curl += ` \\\n  --header 'Content-Type: application/x-www-form-urlencoded'`;
 
         // Add data
-        // Use decoded format as requested
+        // Use --data-urlencode for cleaner usage while ensuring correct encoding
         if (bodyParams.data) {
-            curl += ` \\\n  -d "data=${bodyParams.data}"`;
+            curl += ` \\\n  --data-urlencode 'data=${bodyParams.data}'`;
         } else {
             const dataParams = new URLSearchParams(bodyParams);
             curl += ` \\\n  -d "${dataParams.toString()}"`;
