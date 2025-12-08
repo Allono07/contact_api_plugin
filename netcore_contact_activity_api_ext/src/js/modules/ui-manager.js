@@ -14,6 +14,7 @@ class UIManager {
         document.getElementById('generateCurlBtn').addEventListener('click', () => this.handleGenerateCurl());
         document.getElementById('triggerApiBtn').addEventListener('click', () => this.handleTriggerAPI());
         document.getElementById('toggleApiKey').addEventListener('click', () => this.toggleApiKeyVisibility());
+        document.getElementById('clearContactFormBtn').addEventListener('click', () => this.handleClearContactForm());
 
         // Activity API listeners
         const addActivityBtn = document.getElementById('addActivityBtn');
@@ -631,6 +632,42 @@ class UIManager {
             Utils.showStatus(statusMessage, 'Activity API triggered successfully!', 'success');
         } catch (error) {
             Utils.showStatus(statusMessage, `Error: ${error.message}`, 'error', 4000);
+        }
+    }
+
+    /**
+     * Handle Clear Contact Form
+     */
+    handleClearContactForm() {
+        const statusMessage = document.getElementById('statusMessage');
+        
+        // Show confirmation dialog
+        const confirmed = confirm('Are you sure you want to clear the contact form? This action cannot be undone.');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            // Clear form fields
+            document.getElementById('region').value = '';
+            document.getElementById('apiKey').value = '';
+            document.getElementById('activity').value = '';
+            document.getElementById('listId').value = '';
+            
+            // Clear Primary Key fields
+            document.getElementById('primaryKey').value = '';
+            document.getElementById('primaryValue').value = '';
+            document.getElementById('primaryType').value = 'string';
+
+            // Clear dynamic attributes
+            document.getElementById('attributesContainer').innerHTML = '';
+            
+            // Save form state (empty)
+            this.saveFormState();
+            
+            Utils.showStatus(statusMessage, '✓ Contact form cleared successfully', 'success', 3000);
+        } catch (error) {
+            Utils.showStatus(statusMessage, `Error clearing form: ${error.message}`, 'error', 4000);
         }
     }
 
