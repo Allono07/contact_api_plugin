@@ -42,8 +42,10 @@ class Utils {
         if (!formData.activity) {
             errors.push('Activity is required');
         }
-        if (!formData.attributes || formData.attributes.length === 0) {
-            errors.push('At least one attribute is required');
+        
+        // Check for Primary Key
+        if (!formData.primaryKey || !formData.primaryKey.key || !formData.primaryKey.value) {
+            errors.push('Primary Key and Value are required');
         }
 
         return errors;

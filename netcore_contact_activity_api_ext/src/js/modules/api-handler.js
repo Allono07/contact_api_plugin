@@ -4,18 +4,24 @@ class APIHandler {
     /**
      * Build query parameters
      */
-    static buildQueryParams(apiKey, activity) {
-        return {
+    static buildQueryParams(apiKey, activity, listId) {
+        const params = {
             type: API_CONFIG.type,
             activity: activity,
             apikey: apiKey
         };
+
+        if (listId) {
+            params.listid = parseInt(listId, 10);
+        }
+
+        return params;
     }
 
     /**
      * Build request body
      */
-    static buildRequestBody(listId, attributes) {
+    static buildRequestBody(attributes) {
         const dataObject = {};
 
         // Add attributes to data object
@@ -33,10 +39,6 @@ class APIHandler {
             data: JSON.stringify(dataObject)
         };
 
-        if (listId) {
-            bodyParams.listid = parseInt(listId, 10);
-        }
-
         return bodyParams;
     }
 
@@ -50,8 +52,13 @@ class APIHandler {
         curl += ` \\\n  -H "Content-Type: application/x-www-form-urlencoded"`;
 
         // Add data
-        const dataParams = new URLSearchParams(bodyParams);
-        curl += ` \\\n  -d "${dataParams.toString()}"`;
+        // Use decoded format as requested
+        if (bodyParams.data) {
+            curl += ` \\\n  -d "data=${bodyParams.data}"`;
+        } else {
+            const dataParams = new URLSearchParams(bodyParams);
+            curl += ` \\\n  -d "${dataParams.toString()}"`;
+        }
 
         return curl;
     }

@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('activity').addEventListener('change', () => uiManager.saveFormState());
     document.getElementById('listId').addEventListener('change', () => uiManager.saveFormState());
     
+    // Primary Key listeners
+    document.getElementById('primaryKey').addEventListener('change', () => uiManager.saveFormState());
+    document.getElementById('primaryValue').addEventListener('change', () => uiManager.saveFormState());
+    document.getElementById('primaryType').addEventListener('change', () => uiManager.saveFormState());
+    
     // Activity API form state listeners - Updated for new fields (with null checks)
     const activityApiKey = document.getElementById('activityApiKey');
     const activityRegion = document.getElementById('activityRegion');

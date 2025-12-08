@@ -683,7 +683,7 @@ class UIManager {
         attributeRow.id = rowId;
         attributeRow.innerHTML = `
             <div class="attribute-inputs">
-                <input type="text" class="attr-key" placeholder="Key (e.g., FIRST_NAME)" value="${key}">
+                <input type="text" class="attr-key" placeholder="Key (e.g., EMAIL/MOBILE)" value="${key}">
                 <input type="text" class="attr-value" placeholder="Value" value="${value}">
                 <select class="attr-type">
                     <option value="${DATA_TYPES.string}" ${dataType === DATA_TYPES.string ? 'selected' : ''}>String</option>
@@ -711,6 +711,11 @@ class UIManager {
         const activity = document.getElementById('activity').value;
         const listId = document.getElementById('listId').value;
 
+        // Get Primary Key
+        const primaryKey = document.getElementById('primaryKey').value.trim();
+        const primaryValue = document.getElementById('primaryValue').value.trim();
+        const primaryType = document.getElementById('primaryType').value;
+
         const attributes = [];
         document.querySelectorAll('.attribute-row').forEach(row => {
             const key = row.querySelector('.attr-key').value.trim();
@@ -727,6 +732,7 @@ class UIManager {
             apiKey,
             activity,
             listId: listId || null,
+            primaryKey: { key: primaryKey, value: primaryValue, dataType: primaryType },
             attributes
         };
     }
@@ -747,8 +753,16 @@ class UIManager {
             }
 
             const endpoint = ENDPOINTS[formData.region];
-            const queryParams = APIHandler.buildQueryParams(formData.apiKey, formData.activity);
-            const bodyParams = APIHandler.buildRequestBody(formData.listId, formData.attributes);
+            const queryParams = APIHandler.buildQueryParams(formData.apiKey, formData.activity, formData.listId);
+            
+            // Combine primary key and attributes
+            const allAttributes = [];
+            if (formData.primaryKey && formData.primaryKey.key && formData.primaryKey.value) {
+                allAttributes.push(formData.primaryKey);
+            }
+            allAttributes.push(...formData.attributes);
+
+            const bodyParams = APIHandler.buildRequestBody(allAttributes);
 
             const curl = APIHandler.generateCurl(endpoint, queryParams, bodyParams);
 
@@ -786,8 +800,16 @@ class UIManager {
             }
 
             const endpoint = ENDPOINTS[formData.region];
-            const queryParams = APIHandler.buildQueryParams(formData.apiKey, formData.activity);
-            const bodyParams = APIHandler.buildRequestBody(formData.listId, formData.attributes);
+            const queryParams = APIHandler.buildQueryParams(formData.apiKey, formData.activity, formData.listId);
+            
+            // Combine primary key and attributes
+            const allAttributes = [];
+            if (formData.primaryKey && formData.primaryKey.key && formData.primaryKey.value) {
+                allAttributes.push(formData.primaryKey);
+            }
+            allAttributes.push(...formData.attributes);
+
+            const bodyParams = APIHandler.buildRequestBody(allAttributes);
 
             Utils.showStatus(statusMessage, 'Triggering API...', 'info');
 
@@ -800,7 +822,7 @@ class UIManager {
                 region: formData.region,
                 activity: formData.activity,
                 listId: formData.listId,
-                attributes: formData.attributes,
+                attributes: allAttributes,
                 response: formattedResponse.body,
                 status: formattedResponse.status
             });
@@ -961,6 +983,13 @@ class UIManager {
                 document.getElementById('apiKey').value = data.apiKey || '';
                 document.getElementById('activity').value = data.activity || '';
                 document.getElementById('listId').value = data.listId || '';
+
+                // Load Primary Key
+                if (data.primaryKey) {
+                    document.getElementById('primaryKey').value = data.primaryKey.key || '';
+                    document.getElementById('primaryValue').value = data.primaryKey.value || '';
+                    document.getElementById('primaryType').value = data.primaryKey.dataType || 'string';
+                }
 
                 if (data.attributes && data.attributes.length > 0) {
                     document.getElementById('attributesContainer').innerHTML = '';

@@ -73,6 +73,21 @@
                         <input type="number" id="listId" placeholder="Leave empty if not needed">
                     </div>
 
+                    <!-- Primary Key Section -->
+                    <div class="form-group" style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 15px;">
+                        <label style="color: #2c3e50; font-weight: 600; margin-bottom: 8px; display: block;">Primary Key *</label>
+                        <div class="attribute-inputs" style="margin-bottom: 0; display: flex; gap: 8px;">
+                            <input type="text" id="primaryKey" placeholder="Key (e.g., EMAIL)" style="flex: 1;">
+                            <input type="text" id="primaryValue" placeholder="Value" style="flex: 1;">
+                            <select id="primaryType" style="flex: 0.8;">
+                                <option value="string">String</option>
+                                <option value="float">Float</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Dynamic Attributes Section -->
                     <div class="form-group">
                         <label>Contact Attributes</label>
@@ -133,18 +148,18 @@
 
                     <!-- Activities Container -->
                     <div class="form-group">
-                        <label>Activities</label>
-                        <div class="csv-upload-section">
+                        <label>Events</label>
+                        <!-- <div class="csv-upload-section">
                             <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">Or upload CSV file to auto-generate activities</p>
                             <div class="csv-upload-controls">
                                 <input type="file" id="csvFileInput" accept=".csv">
                                 <button id="uploadCsvBtn" class="btn-csv-upload"> Upload CSV</button>
                             </div>
-                        </div>
+                        </div> -->
                         <div id="activitiesContainer" class="activities-container">
                             <!-- Activity rows will be added dynamically -->
                         </div>
-                        <button id="addActivityBtn" class="btn btn-secondary">+ Add Activity</button>
+                        <button id="addActivityBtn" class="btn btn-secondary">+ Add Activity/Event</button>
                     </div>
 
                     <!-- Actions -->
