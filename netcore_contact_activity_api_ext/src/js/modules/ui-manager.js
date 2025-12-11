@@ -6,6 +6,24 @@ class UIManager {
     }
 
     /**
+     * Get default value based on data type
+     */
+    getDefaultValue(dataType, isEvent = false) {
+        switch (dataType) {
+            case DATA_TYPES.float:
+                return '12.1';
+            case DATA_TYPES.number:
+                return '22';
+            case DATA_TYPES.string:
+                return 'test';
+            case DATA_TYPES.date:
+                return isEvent ? '2025-09-22 12:12:12' : '2025-09-22';
+            default:
+                return '';
+        }
+    }
+
+    /**
      * Initialize all event listeners
      */
     initializeEventListeners() {
@@ -13,6 +31,7 @@ class UIManager {
         document.getElementById('addAttributeBtn').addEventListener('click', () => this.addAttributeRow());
         document.getElementById('generateCurlBtn').addEventListener('click', () => this.handleGenerateCurl());
         document.getElementById('triggerApiBtn').addEventListener('click', () => this.handleTriggerAPI());
+        document.getElementById('previewContactBtn').addEventListener('click', () => this.handleContactPreview());
         document.getElementById('toggleApiKey').addEventListener('click', () => this.toggleApiKeyVisibility());
         document.getElementById('clearContactFormBtn').addEventListener('click', () => this.handleClearContactForm());
 
@@ -20,6 +39,7 @@ class UIManager {
         const addActivityBtn = document.getElementById('addActivityBtn');
         const generateActivityCurlBtn = document.getElementById('generateActivityCurlBtn');
         const triggerActivityApiBtn = document.getElementById('triggerActivityApiBtn');
+        const previewActivityBtn = document.getElementById('previewActivityBtn');
         const toggleActivityApiKey = document.getElementById('toggleActivityApiKey');
         const uploadCsvBtn = document.getElementById('uploadCsvBtn');
         const clearActivityFormBtn = document.getElementById('clearActivityFormBtn');
@@ -27,6 +47,7 @@ class UIManager {
         if (addActivityBtn) addActivityBtn.addEventListener('click', () => this.addActivityRow());
         if (generateActivityCurlBtn) generateActivityCurlBtn.addEventListener('click', () => this.handleGenerateActivityCurl());
         if (triggerActivityApiBtn) triggerActivityApiBtn.addEventListener('click', () => this.handleTriggerActivityAPI());
+        if (previewActivityBtn) previewActivityBtn.addEventListener('click', () => this.handleActivityPreview());
         if (toggleActivityApiKey) toggleActivityApiKey.addEventListener('click', () => this.toggleActivityApiKeyVisibility());
         if (uploadCsvBtn) uploadCsvBtn.addEventListener('click', () => this.handleCSVUpload());
         if (clearActivityFormBtn) clearActivityFormBtn.addEventListener('click', () => this.handleClearActivityForm());
@@ -35,6 +56,22 @@ class UIManager {
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
         document.getElementById('copyResponseBtn').addEventListener('click', () => this.handleCopyResponse());
         document.getElementById('closeResponseBtn').addEventListener('click', () => this.closeResponseSection());
+        
+        // Modal listeners
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
+        const previewModal = document.getElementById('previewModal');
+        
+        if (closePreviewBtn) {
+            closePreviewBtn.addEventListener('click', () => this.closePreviewModal());
+        }
+        
+        if (previewModal) {
+            window.addEventListener('click', (event) => {
+                if (event.target === previewModal) {
+                    this.closePreviewModal();
+                }
+            });
+        }
     }
 
     /**
@@ -59,8 +96,11 @@ class UIManager {
 
         container.appendChild(activityRow);
 
+        activityRow.querySelector('.activity-name').addEventListener('change', () => this.saveFormState());
+
         activityRow.querySelector('.btn-remove-activity').addEventListener('click', (e) => {
             document.getElementById(e.target.dataset.activityId).remove();
+            this.saveFormState();
         });
 
         activityRow.querySelector('.btn-add-activity-param').addEventListener('click', (e) => {
@@ -91,7 +131,7 @@ class UIManager {
         paramRow.innerHTML = `
             <div class="param-inputs">
                 <input type="text" class="param-key" placeholder="Parameter Name" value="${key}">
-                <input type="text" class="param-value" placeholder="Value (or use Array Builder for arrays)" value="${value}" ${dataType === DATA_TYPES.array ? 'disabled' : ''} style="background-color: ${dataType === DATA_TYPES.array ? '#e0e0e0' : 'white'};">
+                <input type="text" class="param-value" placeholder="Value (or use Array Builder for arrays) Leave Empty for appending default values" value="${value}" ${dataType === DATA_TYPES.array ? 'disabled' : ''} style="background-color: ${dataType === DATA_TYPES.array ? '#e0e0e0' : 'white'};">
                 <select class="param-type">
                     <option value="${DATA_TYPES.string}" ${dataType === DATA_TYPES.string ? 'selected' : ''}>String</option>
                     <option value="${DATA_TYPES.float}" ${dataType === DATA_TYPES.float ? 'selected' : ''}>Float</option>
@@ -109,8 +149,20 @@ class UIManager {
 
         const typeSelect = paramRow.querySelector('.param-type');
         const valueInput = paramRow.querySelector('.param-value');
+        const keyInput = paramRow.querySelector('.param-key');
         const arrayBuilderBtn = paramRow.querySelector('.btn-array-builder');
         const arrayItemsContainer = document.getElementById(`array-items-${paramId}`);
+
+        // Add change listeners for persistence and defaults
+        keyInput.addEventListener('change', () => this.saveFormState());
+        
+        valueInput.addEventListener('change', () => this.saveFormState());
+        valueInput.addEventListener('blur', () => {
+            if (!valueInput.value && typeSelect.value !== DATA_TYPES.array) {
+                valueInput.value = this.getDefaultValue(typeSelect.value, true);
+                this.saveFormState();
+            }
+        });
 
         typeSelect.addEventListener('change', (e) => {
             const isArray = e.target.value === DATA_TYPES.array;
@@ -118,6 +170,11 @@ class UIManager {
             valueInput.style.backgroundColor = isArray ? '#e0e0e0' : 'white';
             arrayBuilderBtn.style.display = isArray ? 'inline-block' : 'none';
             arrayItemsContainer.style.display = isArray ? 'block' : 'none';
+            
+            if (!valueInput.value && !isArray) {
+                valueInput.value = this.getDefaultValue(e.target.value, true);
+            }
+            this.saveFormState();
         });
 
         arrayBuilderBtn.addEventListener('click', () => {
@@ -126,6 +183,7 @@ class UIManager {
 
         paramRow.querySelector('.btn-remove-param').addEventListener('click', (e) => {
             document.getElementById(e.target.dataset.paramId).remove();
+            this.saveFormState();
         });
 
         if (arrayItems && arrayItems.length > 0) {
@@ -192,6 +250,7 @@ class UIManager {
         itemRow.querySelector('.btn-remove-item').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById(e.target.dataset.itemId).remove();
+            this.saveFormState();
         });
 
         itemRow.querySelector('.btn-add-field').addEventListener('click', (e) => {
@@ -233,9 +292,32 @@ class UIManager {
         `;
 
         container.appendChild(fieldRow);
+
+        const typeSelect = fieldRow.querySelector('.field-type');
+        const valueInput = fieldRow.querySelector('.field-value');
+
+        // Add change listeners for persistence and defaults
+        fieldRow.querySelector('.field-key').addEventListener('change', () => this.saveFormState());
+        
+        valueInput.addEventListener('change', () => this.saveFormState());
+        valueInput.addEventListener('blur', () => {
+            if (!valueInput.value) {
+                valueInput.value = this.getDefaultValue(typeSelect.value, true);
+                this.saveFormState();
+            }
+        });
+
+        typeSelect.addEventListener('change', () => {
+            if (!valueInput.value) {
+                valueInput.value = this.getDefaultValue(typeSelect.value, true);
+            }
+            this.saveFormState();
+        });
+
         fieldRow.querySelector('.btn-remove-field').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById(e.target.dataset.fieldId).remove();
+            this.saveFormState();
         });
     }
 
@@ -734,8 +816,30 @@ class UIManager {
 
         container.appendChild(attributeRow);
 
+        const typeSelect = attributeRow.querySelector('.attr-type');
+        const valueInput = attributeRow.querySelector('.attr-value');
+
+        // Add change listeners for persistence and defaults
+        attributeRow.querySelector('.attr-key').addEventListener('change', () => this.saveFormState());
+        
+        valueInput.addEventListener('change', () => this.saveFormState());
+        valueInput.addEventListener('blur', () => {
+            if (!valueInput.value) {
+                valueInput.value = this.getDefaultValue(typeSelect.value, false);
+                this.saveFormState();
+            }
+        });
+
+        typeSelect.addEventListener('change', () => {
+            if (!valueInput.value) {
+                valueInput.value = this.getDefaultValue(typeSelect.value, false);
+            }
+            this.saveFormState();
+        });
+
         attributeRow.querySelector('.btn-remove').addEventListener('click', (e) => {
             document.getElementById(e.target.dataset.rowId).remove();
+            this.saveFormState();
         });
     }
 
@@ -772,6 +876,157 @@ class UIManager {
             primaryKey: { key: primaryKey, value: primaryValue, dataType: primaryType },
             attributes
         };
+    }
+
+    /**
+     * Handle Contact Preview
+     */
+    handleContactPreview() {
+        const formData = this.getFormData();
+        const attributes = [];
+
+        // Add Primary Key
+        if (formData.primaryKey && formData.primaryKey.key) {
+            attributes.push({
+                key: formData.primaryKey.key,
+                value: formData.primaryKey.value,
+                dataType: formData.primaryKey.dataType,
+                isPrimary: true
+            });
+        }
+
+        // Add other attributes
+        if (formData.attributes && formData.attributes.length > 0) {
+            attributes.push(...formData.attributes);
+        }
+
+        if (attributes.length === 0) {
+            Utils.showStatus(document.getElementById('statusMessage'), 'No attributes to preview', 'warning', 3000);
+            return;
+        }
+
+        let tableHtml = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Attribute Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        attributes.forEach(attr => {
+            const rowStyle = attr.isPrimary ? 'background-color: #e8f4f8;' : '';
+            const keyDisplay = attr.isPrimary ? `<strong>${attr.key} (PK)</strong>` : attr.key;
+            
+            tableHtml += `
+                <tr style="${rowStyle}">
+                    <td style="border: 1px solid #ddd; padding: 8px;">${keyDisplay}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${attr.dataType}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                </tr>
+            `;
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+        this.showPreviewModal('Contact Attributes Preview', tableHtml);
+    }
+
+    /**
+     * Handle Activity Preview
+     */
+    handleActivityPreview() {
+        const activityData = this.getActivityFormData();
+        
+        if (!activityData || !activityData.activities || activityData.activities.length === 0) {
+            Utils.showStatus(document.getElementById('statusMessage'), 'No activities to preview', 'warning', 3000);
+            return;
+        }
+
+        let tableHtml = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Event Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Parameter Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        activityData.activities.forEach(activity => {
+            const params = activity.params;
+            const paramKeys = Object.keys(params);
+            
+            if (paramKeys.length === 0) {
+                tableHtml += `
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><strong>${activity.name}</strong></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;" colspan="3"><em>No parameters</em></td>
+                    </tr>
+                `;
+            } else {
+                paramKeys.forEach((key, index) => {
+                    const param = params[key];
+                    let valueDisplay = param.value;
+                    
+                    if (param.dataType === DATA_TYPES.array) {
+                        valueDisplay = `<pre style="margin: 0; font-size: 11px; max-height: 100px; overflow: auto;">${JSON.stringify(param.arrayItems, null, 2)}</pre>`;
+                    }
+
+                    tableHtml += `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${index === 0 ? `<strong>${activity.name}</strong>` : ''}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${key}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${param.dataType}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${valueDisplay}</td>
+                        </tr>
+                    `;
+                });
+            }
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+        this.showPreviewModal('Activity Events Preview', tableHtml);
+    }
+
+    /**
+     * Show Preview Modal
+     */
+    showPreviewModal(title, content) {
+        const modal = document.getElementById('previewModal');
+        const titleEl = document.getElementById('previewTitle');
+        const bodyEl = document.getElementById('previewBody');
+        
+        if (modal && titleEl && bodyEl) {
+            titleEl.textContent = title;
+            bodyEl.innerHTML = content;
+            modal.style.display = 'block';
+            modal.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Close Preview Modal
+     */
+    closePreviewModal() {
+        const modal = document.getElementById('previewModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
     }
 
     /**

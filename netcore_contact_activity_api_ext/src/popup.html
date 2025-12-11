@@ -101,6 +101,7 @@
                     <div class="actions">
                         <button id="generateCurlBtn" class="btn btn-primary">Generate cURL</button>
                         <button id="triggerApiBtn" class="btn btn-success">Trigger API</button>
+                        <button id="previewContactBtn" class="btn btn-info" style="background-color: #17a2b8; color: white;">Preview</button>
                         <button id="clearContactFormBtn" class="btn btn-danger">Clear Form</button>
                     </div>
                 </div>
@@ -167,6 +168,7 @@
                     <div class="actions">
                         <button id="generateActivityCurlBtn" class="btn btn-primary">Generate cURL</button>
                         <button id="triggerActivityApiBtn" class="btn btn-success">Trigger API</button>
+                        <button id="previewActivityBtn" class="btn btn-info" style="background-color: #17a2b8; color: white;">Preview</button>
                         <button id="clearActivityFormBtn" class="btn btn-danger">Clear Form</button>
                     </div>
                 </div>
@@ -205,6 +207,19 @@
 
         <!-- Status Messages -->
         <div id="statusMessage" class="status-message"></div>
+
+        <!-- Preview Modal -->
+        <div id="previewModal" class="modal hidden" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+            <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; border-radius: 5px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);">
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <h3 id="previewTitle" style="margin: 0;">Preview</h3>
+                    <button id="closePreviewBtn" class="close-btn" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; background: none; border: none; cursor: pointer;">&times;</button>
+                </div>
+                <div id="previewBody" class="modal-body">
+                    <!-- Table will be injected here -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/modules/constants.js"></script>
