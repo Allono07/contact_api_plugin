@@ -190,9 +190,12 @@
         <div id="curlSection" class="curl-section hidden">
             <div class="curl-header">
                 <h3>Generated cURL Command</h3>
-                <button id="copyCurlBtn" class="btn btn-small">Copy</button>
+                <div class="curl-actions">
+                    <button id="triggerCurlBtn" class="btn btn-small btn-success">Trigger</button>
+                    <button id="copyCurlBtn" class="btn btn-small">Copy</button>
+                </div>
             </div>
-            <textarea id="curlOutput" readonly class="curl-output"></textarea>
+            <textarea id="curlOutput" class="curl-output"></textarea>
         </div>
 
         <!-- Response Section -->

@@ -54,6 +54,7 @@ class UIManager {
 
         // Response listeners
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
+        document.getElementById('triggerCurlBtn').addEventListener('click', () => this.handleTriggerCurl());
         document.getElementById('copyResponseBtn').addEventListener('click', () => this.handleCopyResponse());
         document.getElementById('closeResponseBtn').addEventListener('click', () => this.closeResponseSection());
         
@@ -1148,6 +1149,108 @@ class UIManager {
     }
 
     /**
+     * Handle Trigger cURL
+     */
+    async handleTriggerCurl() {
+        const curlOutput = document.getElementById('curlOutput');
+        const statusMessage = document.getElementById('statusMessage');
+        const curlCommand = curlOutput.value.trim();
+
+        if (!curlCommand) {
+            Utils.showStatus(statusMessage, 'No cURL command to trigger', 'error', 3000);
+            return;
+        }
+
+        try {
+            Utils.showStatus(statusMessage, 'Parsing and triggering cURL...', 'info');
+            
+            // Basic cURL parsing logic
+            let url = '';
+            let bodyParams = {};
+            let endpoint = '';
+            let queryParams = {};
+
+            // 1. Try parsing as Contact API (curl -X POST "...")
+            const contactApiMatch = curlCommand.match(/curl -X POST "([^"]+)"/);
+            
+            if (contactApiMatch) {
+                url = contactApiMatch[1];
+                
+                // Extract Data for Contact API
+                // Check for --data-urlencode 'data=...'
+                const dataUrlEncodeMatch = curlCommand.match(/--data-urlencode 'data=([^']+)'/);
+                if (dataUrlEncodeMatch) {
+                    bodyParams = { data: dataUrlEncodeMatch[1] };
+                } else {
+                    // Check for -d "..."
+                    const dataMatch = curlCommand.match(/-d "([^"]+)"/);
+                    if (dataMatch) {
+                        const params = new URLSearchParams(dataMatch[1]);
+                        for (const [key, value] of params.entries()) {
+                            bodyParams[key] = value;
+                        }
+                    }
+                }
+
+                // Split URL into endpoint and query params
+                const urlObj = new URL(url);
+                endpoint = `${urlObj.origin}${urlObj.pathname}`;
+                for (const [key, value] of urlObj.searchParams.entries()) {
+                    queryParams[key] = value;
+                }
+
+                const response = await APIHandler.triggerAPI(endpoint, queryParams, bodyParams);
+                const formattedResponse = APIHandler.formatResponse(response);
+                this.displayResponse(formattedResponse);
+
+            } else {
+                // 2. Try parsing as Activity API (curl --location '...')
+                const activityApiMatch = curlCommand.match(/curl --location '([^']+)'/);
+                
+                if (activityApiMatch) {
+                    endpoint = activityApiMatch[1];
+                    
+                    // Extract Bearer Token
+                    const tokenMatch = curlCommand.match(/--header 'Authorization: Bearer ([^']+)'/);
+                    const bearerToken = tokenMatch ? tokenMatch[1] : '';
+                    
+                    // Extract JSON Payload (--data '...')
+                    // Note: This regex is simple and might fail if the JSON contains single quotes that aren't escaped
+                    // A more robust parser would be needed for complex cases
+                    const dataMatch = curlCommand.match(/--data '([\s\S]+)'/);
+                    let payload = [];
+                    
+                    if (dataMatch) {
+                        try {
+                            payload = JSON.parse(dataMatch[1]);
+                        } catch (e) {
+                            throw new Error('Could not parse JSON payload from cURL');
+                        }
+                    }
+
+                    // Determine region from endpoint
+                    let region = 'us'; // default
+                    if (endpoint.includes('apiin')) region = 'in';
+                    if (endpoint.includes('apieu')) region = 'eu';
+
+                    const response = await APIHandler.triggerActivityAPI(bearerToken, region, payload);
+                    const formattedResponse = APIHandler.formatResponse(response);
+                    this.displayResponse(formattedResponse);
+
+                } else {
+                    throw new Error('Could not parse URL from cURL command. Ensure it matches the generated format.');
+                }
+            }
+            
+            Utils.showStatus(statusMessage, 'API triggered successfully from cURL!', 'success');
+
+        } catch (error) {
+            console.error('cURL Trigger Error:', error);
+            Utils.showStatus(statusMessage, `Error triggering cURL: ${error.message}`, 'error', 5000);
+        }
+    }
+
+    /**
      * Handle Copy cURL
      */
     handleCopyCurl() {
@@ -1383,7 +1486,10 @@ class UIManager {
                         <div class="history-details" style="margin-bottom: 8px;">
                             <small style="color: #999;">${call.region} | ${attributesText} ${apiType === 'activity' ? 'activities' : 'attributes'}</small>
                         </div>
-                        <button class="btn-history-restore" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">${buttonText}</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-history-restore" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">${buttonText}</button>
+                            ${apiType === 'contact' ? `<button class="btn-history-view-curl" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #5bc0de; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">View cURL</button>` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1391,6 +1497,37 @@ class UIManager {
             document.querySelectorAll('.btn-history-restore').forEach(btn => {
                 btn.addEventListener('click', (e) => this.restoreFromHistory(e.target.dataset.callId));
             });
+
+            document.querySelectorAll('.btn-history-view-curl').forEach(btn => {
+                btn.addEventListener('click', (e) => this.viewCurlFromHistory(e.target.dataset.callId));
+            });
+        });
+    }
+
+    /**
+     * View cURL from history (Contact API)
+     */
+    viewCurlFromHistory(callId) {
+        chrome.storage.local.get(['callHistory'], (result) => {
+            const history = result.callHistory || [];
+            const call = history.find(c => c.id == callId);
+            
+            if (call && call.apiType === 'contact') {
+                const endpoint = ENDPOINTS[call.region];
+                const queryParams = APIHandler.buildQueryParams(document.getElementById('apiKey').value || 'YOUR_API_KEY', call.activity, call.listId);
+                
+                // Reconstruct attributes
+                const allAttributes = [];
+                if (Array.isArray(call.attributes)) {
+                    allAttributes.push(...call.attributes);
+                }
+
+                const bodyParams = APIHandler.buildRequestBody(allAttributes);
+                const curl = APIHandler.generateCurl(endpoint, queryParams, bodyParams);
+                
+                this.displayCurl(curl);
+                Utils.showStatus(document.getElementById('statusMessage'), 'cURL generated from history', 'info');
+            }
         });
     }
 
