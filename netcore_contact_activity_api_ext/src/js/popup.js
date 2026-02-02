@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Add initial attribute row if none exist
-    if (document.querySelectorAll('.attribute-row').length === 0) {
+    if (document.querySelectorAll('#attributesContainer .attribute-row').length === 0) {
         uiManager.addAttributeRow();
     }
 });

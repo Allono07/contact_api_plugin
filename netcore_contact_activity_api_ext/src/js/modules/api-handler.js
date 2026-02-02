@@ -214,7 +214,7 @@ class APIHandler {
             attributes: attributesObj
         };
 
-        if (identity) contactObj.identity = identity;
+        if (identity && contactType === 'identified') contactObj.identity = identity;
         
         systemAttributes.forEach(attr => {
             if (attr.key && attr.value !== '') {

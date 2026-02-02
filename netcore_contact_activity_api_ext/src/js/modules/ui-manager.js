@@ -735,6 +735,7 @@ class UIManager {
             this.addToHistory({
                 apiType: 'activity',
                 region: region,
+                apiKey: bearerToken, // Save Bearer Token (mapped to apiKey)
                 activity: `Events Count (${activities.length})`,
                 listId: assetId,
                 identity: identity,
@@ -893,7 +894,7 @@ class UIManager {
         const primaryType = document.getElementById('primaryType').value;
 
         const attributes = [];
-        document.querySelectorAll('.attribute-row').forEach(row => {
+        document.querySelectorAll('#attributesContainer .attribute-row').forEach(row => {
             const key = row.querySelector('.attr-key').value.trim();
             const value = row.querySelector('.attr-value').value.trim();
             const dataType = row.querySelector('.attr-type').value;
@@ -941,12 +942,12 @@ class UIManager {
         }
 
         let tableHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed;">
                 <thead>
                     <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Attribute Name</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data Type</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 35%;">Attribute Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 25%;">Data Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 40%;">Value</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -958,9 +959,9 @@ class UIManager {
             
             tableHtml += `
                 <tr style="${rowStyle}">
-                    <td style="border: 1px solid #ddd; padding: 8px;">${keyDisplay}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${keyDisplay}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${attr.dataType}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${attr.value}</td>
                 </tr>
             `;
         });
@@ -985,13 +986,13 @@ class UIManager {
         }
 
         let tableHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed;">
                 <thead>
                     <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Event Name</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Parameter Name</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Data Type</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 25%;">Event</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 25%;">Param</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 15%;">Type</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 35%;">Value</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1004,7 +1005,7 @@ class UIManager {
             if (paramKeys.length === 0) {
                 tableHtml += `
                     <tr>
-                        <td style="border: 1px solid #ddd; padding: 8px;"><strong>${activity.name}</strong></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;"><strong>${activity.name}</strong></td>
                         <td style="border: 1px solid #ddd; padding: 8px;" colspan="3"><em>No parameters</em></td>
                     </tr>
                 `;
@@ -1019,10 +1020,10 @@ class UIManager {
 
                     tableHtml += `
                         <tr>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${index === 0 ? `<strong>${activity.name}</strong>` : ''}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${key}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${index === 0 ? `<strong>${activity.name}</strong>` : ''}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${key}</td>
                             <td style="border: 1px solid #ddd; padding: 8px;">${param.dataType}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${valueDisplay}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; word-break: break-word;">${valueDisplay}</td>
                         </tr>
                     `;
                 });
@@ -1155,6 +1156,7 @@ class UIManager {
             this.addToHistory({
                 apiType: 'contact',
                 region: formData.region,
+                apiKey: formData.apiKey, // Save API Key
                 activity: formData.activity,
                 listId: formData.listId,
                 attributes: allAttributes,
@@ -1452,7 +1454,7 @@ class UIManager {
         chrome.storage.local.get(['formData', 'activityFormData', 'v5FormData', 'activeContactVersion'], (result) => {
             // Load Active Version logic
             const version = result.activeContactVersion || 'v2';
-            if (this.handleVersionSwitch) this.handleVersionSwitch(version);
+            if (this.handleVersionSwitch) this.handleVersionSwitch(version, false);
 
             // Load V5 Data
             if (result.v5FormData) {
@@ -1541,6 +1543,7 @@ class UIManager {
                 timestamp: new Date().toLocaleString(),
                 apiType: callData.apiType || 'contact',
                 region: callData.region,
+                apiKey: callData.apiKey, // Store API Key
                 activity: callData.activity,
                 listId: callData.listId,
                 attributes: callData.attributes,
@@ -1681,7 +1684,11 @@ class UIManager {
                 const apiType = call.apiType || 'contact';
                 
                 if (apiType === 'contact') {
+                    // Switch to V2 tab
+                    this.handleVersionSwitch('v2');
+
                     document.getElementById('region').value = call.region;
+                    if (call.apiKey) document.getElementById('apiKey').value = call.apiKey; // Restore API Key
                     document.getElementById('activity').value = call.activity;
                     document.getElementById('listId').value = call.listId || '';
                     
@@ -1698,11 +1705,28 @@ class UIManager {
                 } else if (apiType === 'activity') {
                     // Generate cURL for Activity API from history
                     this.generateActivityCurlFromHistory(call);
+                    
+                    // Also restore form values for activity if needed
+                    document.getElementById('activityRegion').value = call.region;
+                     if (call.apiKey) document.getElementById('activityApiKey').value = call.apiKey;
+                    if (call.listId) document.getElementById('assetId').value = call.listId; // assetId was stored as listId
+                    if (call.identity) document.getElementById('identity').value = call.identity;
+                    if (call.activitySource) document.getElementById('activitySource').value = call.activitySource;
+                    
+                    if (call.activities && call.activities.length > 0) {
+                         const container = document.getElementById('activitiesContainer');
+                         container.innerHTML = '';
+                         call.activities.forEach(activity => {
+                            this.addActivityRow(activity.name, activity.params);
+                         });
+                    }
+
                 } else if (apiType === 'contact_v5') {
                     // Switch to V5 tab
                     this.handleVersionSwitch('v5');
                     
                     if (call.region) document.getElementById('regionV5').value = call.region;
+                    if (call.apiKey) document.getElementById('apiKeyV5').value = call.apiKey; // Restore V5 API Key
                     if (call.operation) document.getElementById('operationV5').value = call.operation;
                     if (call.contactType) document.getElementById('contactTypeV5').value = call.contactType;
                     if (call.audienceId) document.getElementById('audienceIdV5').value = call.audienceId;
@@ -1800,13 +1824,17 @@ class UIManager {
     /**
      * Handle Contact API Version Switch
      */
-    handleVersionSwitch(version) {
+    handleVersionSwitch(version, saveState = true) {
         document.querySelectorAll('.api-type-btn[data-version]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.version === version);
         });
 
         document.getElementById('contact-v2-container').style.display = version === 'v2' ? 'block' : 'none';
         document.getElementById('contact-v5-container').style.display = version === 'v5' ? 'block' : 'none';
+        
+        if (saveState) {
+            this.saveFormState();
+        }
     }
 
     /**
@@ -1963,6 +1991,7 @@ class UIManager {
              this.addToHistory({
                  apiType: 'contact_v5',
                  region: data.region,
+                 apiKey: data.apiKey, // Save API Key
                  operation: data.operation,
                  contactType: data.contactType,
                  audienceId: data.audienceId,
@@ -1999,12 +2028,12 @@ class UIManager {
                 ${data.contactType === 'identified' ? `<strong>Identity:</strong> ${data.identity}<br>` : ''}
                 <strong>Audience ID:</strong> ${data.audienceId || '1 (Default)'}
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed;">
                 <thead>
                     <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Scope</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Attribute Name</th>
-                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 20%;">Scope</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 40%;">Attribute Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 40%;">Value</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2015,8 +2044,8 @@ class UIManager {
                 tableHtml += `
                     <tr>
                         <td style="border: 1px solid #ddd; padding: 8px;">System</td>
-                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.key}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${attr.key}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${attr.value}</td>
                     </tr>
                 `;
             });
@@ -2027,8 +2056,8 @@ class UIManager {
                 tableHtml += `
                     <tr style="background-color: #f9f9f9;">
                          <td style="border: 1px solid #ddd; padding: 8px;">Custom</td>
-                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.key}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${attr.key}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; word-break: break-all;">${attr.value}</td>
                     </tr>
                 `;
             });
