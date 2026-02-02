@@ -52,12 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // API type switching
-    document.querySelectorAll('.api-type-btn').forEach(btn => {
+    document.querySelectorAll('.api-type-btn[data-api]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const apiType = e.target.getAttribute('data-api');
+            if (!apiType) return; // Skip if no data-api (e.g. version buttons)
             
-            // Update active button
-            document.querySelectorAll('.api-type-btn').forEach(b => b.classList.remove('active'));
+            // Update active button only within this group
+            document.querySelectorAll('.api-type-btn[data-api]').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             
             // Show/hide API sections
@@ -65,10 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const activitySection = document.getElementById('activity-section');
             
             if (apiType === 'contact') {
-                contactSection.style.display = 'block';
+                contactSection.classList.add('active');
+                contactSection.style.display = 'block'; // Ensure display is set
+                activitySection.classList.remove('active');
                 activitySection.style.display = 'none';
             } else {
+                contactSection.classList.remove('active');
                 contactSection.style.display = 'none';
+                activitySection.classList.add('active');
                 activitySection.style.display = 'block';
             }
             

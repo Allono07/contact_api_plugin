@@ -11,19 +11,19 @@ class Utils {
 
         switch (dataType) {
             case DATA_TYPES.string:
-                return `"${value}"`;
+                return value;
             case DATA_TYPES.float:
-                return parseFloat(value).toString();
+                return parseFloat(value);
             case DATA_TYPES.number:
-                return parseInt(value, 10).toString();
+                return parseInt(value, 10);
             case DATA_TYPES.date:
                 // Validate date format YYYY-MM-DD
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
                     throw new Error(`Invalid date format for "${value}". Use YYYY-MM-DD`);
                 }
-                return `"${value}"`;
+                return value;
             default:
-                return `"${value}"`;
+                return value;
         }
     }
 

@@ -193,4 +193,103 @@ class APIHandler {
             );
         });
     }
+
+    // --- V5 Methods ---
+
+    /**
+     * Build V5 Payload
+     */
+    static buildV5Payload(formData) {
+        const { operation, contactType, audienceId, identity, systemAttributes, customAttributes } = formData;
+        
+        const attributesObj = {};
+        customAttributes.forEach(attr => {
+             if (attr.key && attr.value !== '') {
+                 const formatted = Utils.formatValue(attr.value, attr.type);
+                 if (formatted !== null) attributesObj[attr.key] = formatted;
+             }
+        });
+
+        const contactObj = {
+            attributes: attributesObj
+        };
+
+        if (identity) contactObj.identity = identity;
+        
+        systemAttributes.forEach(attr => {
+            if (attr.key && attr.value !== '') {
+                 const formatted = Utils.formatValue(attr.value, attr.type);
+                 if (formatted !== null) contactObj[attr.key] = formatted;
+            }
+        });
+
+        const audienceIdVal = audienceId ? parseInt(audienceId) : 1;
+        const audienceDetails = [{
+            audience_id: [ audienceIdVal ],
+            audience_type: "list"
+        }];
+
+        const payload = {
+            data: {
+                contact_type: contactType,
+                contacts: []
+            }
+        };
+
+        if (contactType === 'identified') {
+            if (operation === 'create') {
+                payload.data.contacts.push(contactObj);
+                payload.data.audience_details = audienceDetails;
+            } else if (operation === 'update') {
+                contactObj.audience_details = audienceDetails;
+                payload.data.contacts.push(contactObj);
+            }
+        } else {
+            // Anonymous
+            payload.data.contacts.push(contactObj);
+        }
+
+        return payload;
+    }
+
+    /**
+     * Generate V5 Curl
+     */
+    static generateV5Curl(endpoint, apiKey, payload) {
+        const payloadStr = JSON.stringify(payload, null, 2);
+        
+        let curl = `curl --request POST \\`;
+        curl += `\n     --url ${endpoint} \\`;
+        curl += `\n     --header 'Content-Type: application/json' \\`;
+        curl += `\n     --header 'accept: application/json' \\`;
+        curl += `\n     --header 'api-key: ${apiKey}' \\`;
+        curl += `\n     --data '${payloadStr}'`;
+        
+        return curl; 
+    }
+
+    /**
+     * Trigger V5 API
+     */
+    static async triggerV5API(endpoint, apiKey, payload) {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+                {
+                    action: 'triggerV5API',
+                    endpoint: endpoint,
+                    apiKey: apiKey,
+                    payload: payload
+                },
+                (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else if (response && response.success) {
+                        resolve(response.data);
+                    } else {
+                        reject(new Error(response?.error || 'Unknown error occurred'));
+                    }
+                }
+            );
+        });
+    }
 }

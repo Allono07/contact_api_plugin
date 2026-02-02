@@ -35,6 +35,39 @@ class UIManager {
         document.getElementById('toggleApiKey').addEventListener('click', () => this.toggleApiKeyVisibility());
         document.getElementById('clearContactFormBtn').addEventListener('click', () => this.handleClearContactForm());
 
+        // Contact V5 Listeners
+        document.querySelectorAll('.api-type-btn[data-version]').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleVersionSwitch(e.target.dataset.version));
+        });
+
+        const addSystemAttrBtn = document.getElementById('addSystemAttributeBtn');
+        const addCustomAttrBtn = document.getElementById('addCustomAttributeBtn');
+        const generateCurlBtnV5 = document.getElementById('generateCurlBtnV5');
+        const triggerApiBtnV5 = document.getElementById('triggerApiBtnV5');
+        const clearContactFormBtnV5 = document.getElementById('clearContactFormBtnV5');
+        const toggleApiKeyV5 = document.getElementById('toggleApiKeyV5');
+        const contactTypeV5 = document.getElementById('contactTypeV5');
+
+        if (addSystemAttrBtn) addSystemAttrBtn.addEventListener('click', () => this.addAttributeRowV5('system'));
+        if (addCustomAttrBtn) addCustomAttrBtn.addEventListener('click', () => this.addAttributeRowV5('custom'));
+        if (generateCurlBtnV5) generateCurlBtnV5.addEventListener('click', () => this.handleGenerateCurlV5());
+        if (triggerApiBtnV5) triggerApiBtnV5.addEventListener('click', () => this.handleTriggerAPIV5());
+        if (previewContactBtnV5) previewContactBtnV5.addEventListener('click', () => this.handleContactPreviewV5());
+        if (clearContactFormBtnV5) clearContactFormBtnV5.addEventListener('click', () => this.handleClearContactFormV5());
+        if (toggleApiKeyV5) toggleApiKeyV5.addEventListener('click', () => this.toggleApiKeyVisibilityV5());
+        
+        if (contactTypeV5) {
+             contactTypeV5.addEventListener('change', (e) => {
+                 this.toggleIdentityField(e.target.value);
+                 this.saveFormState();
+             });
+        }
+
+        ['regionV5', 'apiKeyV5', 'operationV5', 'audienceIdV5', 'identityV5'].forEach(id => {
+             const el = document.getElementById(id);
+             if (el) el.addEventListener('change', () => this.saveFormState());
+         });
+
         // Activity API listeners
         const addActivityBtn = document.getElementById('addActivityBtn');
         const generateActivityCurlBtn = document.getElementById('generateActivityCurlBtn');
@@ -55,6 +88,7 @@ class UIManager {
         // Response listeners
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
         document.getElementById('triggerCurlBtn').addEventListener('click', () => this.handleTriggerCurl());
+        document.getElementById('closeCurlBtn').addEventListener('click', () => this.closeCurlSection());
         document.getElementById('copyResponseBtn').addEventListener('click', () => this.handleCopyResponse());
         document.getElementById('closeResponseBtn').addEventListener('click', () => this.closeResponseSection());
         
@@ -1075,6 +1109,14 @@ class UIManager {
 
         curlOutput.value = curl;
         curlSection.classList.remove('hidden');
+        curlSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Close cURL section
+     */
+    closeCurlSection() {
+        document.getElementById('curlSection').classList.add('hidden');
     }
 
     /**
@@ -1206,6 +1248,7 @@ class UIManager {
             } else {
                 // 2. Try parsing as Activity API (curl --location '...')
                 const activityApiMatch = curlCommand.match(/curl --location '([^']+)'/);
+                const v5ApiMatch = curlCommand.match(/curl --request POST/);
                 
                 if (activityApiMatch) {
                     endpoint = activityApiMatch[1];
@@ -1234,6 +1277,33 @@ class UIManager {
                     if (endpoint.includes('apieu')) region = 'eu';
 
                     const response = await APIHandler.triggerActivityAPI(bearerToken, region, payload);
+                    const formattedResponse = APIHandler.formatResponse(response);
+                    this.displayResponse(formattedResponse);
+
+                } else if (v5ApiMatch) {
+                    // 3. Try parsing as V5 Contact API
+                    const urlMatch = curlCommand.match(/--url\s+([^\s\\]+)/);
+                    if (!urlMatch) {
+                        throw new Error('Could not parse URL from V5 cURL');
+                    }
+                    endpoint = urlMatch[1];
+
+                    const apiKeyMatch = curlCommand.match(/--header 'api-key: ([^']+)'/);
+                    const apiKey = apiKeyMatch ? apiKeyMatch[1] : '';
+
+                    let payload = {};
+                    // Match data. Typically comes as --data '...' or --data-raw '...' at the end.
+                    const dataMatch = curlCommand.match(/--data '([\s\S]+)'$/) || curlCommand.match(/--data-raw '([\s\S]+)'$/);
+                    
+                    if (dataMatch) {
+                        try {
+                            payload = JSON.parse(dataMatch[1]);
+                        } catch (e) {
+                             throw new Error('Invalid JSON payload in V5 cURL');
+                        }
+                    }
+
+                    const response = await APIHandler.triggerV5API(endpoint, apiKey, payload);
                     const formattedResponse = APIHandler.formatResponse(response);
                     this.displayResponse(formattedResponse);
 
@@ -1298,7 +1368,16 @@ class UIManager {
     saveFormState() {
         const formData = this.getFormData();
         const activityFormData = this.getActivityFormData();
-        chrome.storage.local.set({ formData: formData, activityFormData: activityFormData });
+        let v5FormData = null;
+        try { v5FormData = this.getV5FormData(); } catch(e) {}
+        const activeVersion = document.querySelector('.api-type-btn.active[data-version]')?.dataset.version || 'v2';
+        
+        chrome.storage.local.set({ 
+            formData: formData, 
+            activityFormData: activityFormData,
+            v5FormData: v5FormData,
+            activeContactVersion: activeVersion
+        });
     }
 
     /**
@@ -1370,7 +1449,38 @@ class UIManager {
      * Load form state from local storage
      */
     loadFormState() {
-        chrome.storage.local.get(['formData', 'activityFormData'], (result) => {
+        chrome.storage.local.get(['formData', 'activityFormData', 'v5FormData', 'activeContactVersion'], (result) => {
+            // Load Active Version logic
+            const version = result.activeContactVersion || 'v2';
+            if (this.handleVersionSwitch) this.handleVersionSwitch(version);
+
+            // Load V5 Data
+            if (result.v5FormData) {
+                 const data = result.v5FormData;
+                 const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+                 
+                 setVal('regionV5', data.region);
+                 setVal('apiKeyV5', data.apiKey);
+                 setVal('operationV5', data.operation || 'create');
+                 setVal('contactTypeV5', data.contactType || 'identified');
+                 setVal('audienceIdV5', data.audienceId);
+                 setVal('identityV5', data.identity);
+
+                 const sysContainer = document.getElementById('systemAttributesContainerV5');
+                 if(sysContainer) sysContainer.innerHTML = '';
+                 if (data.systemAttributes && Array.isArray(data.systemAttributes)) {
+                     data.systemAttributes.forEach(attr => this.addAttributeRowV5('system', attr.key, attr.value, attr.type));
+                 }
+                 
+                 const custContainer = document.getElementById('customAttributesContainerV5');
+                 if(custContainer) custContainer.innerHTML = '';
+                 if (data.customAttributes && Array.isArray(data.customAttributes)) {
+                     data.customAttributes.forEach(attr => this.addAttributeRowV5('custom', attr.key, attr.value, attr.type));
+                 }
+
+                 if (this.toggleIdentityField) this.toggleIdentityField(data.contactType || 'identified');
+            }
+
             if (result.formData) {
                 const data = result.formData;
 
@@ -1445,6 +1555,16 @@ class UIManager {
                 call.activities = callData.activities;
                 call.historyPayload = callData.historyPayload;
             }
+
+            // For Contact API V5 calls
+            if (callData.apiType === 'contact_v5') {
+                call.operation = callData.operation;
+                call.contactType = callData.contactType;
+                call.audienceId = callData.audienceId;
+                call.identity = callData.identity;
+                call.systemAttributes = callData.systemAttributes;
+                call.customAttributes = callData.customAttributes;
+            }
             
             history.unshift(call);
             if (history.length > 50) history.pop();
@@ -1469,22 +1589,40 @@ class UIManager {
 
             historyContainer.innerHTML = history.map(call => {
                 const apiType = call.apiType || 'contact';
-                const apiLabel = apiType === 'activity' ? 'ACTIVITY API' : 'CONTACT API';
-                const attributesText = Array.isArray(call.attributes) ? call.attributes.length : 0;
-                const buttonText = apiType === 'activity' ? 'View cURL' : 'Restore';
+                let apiLabel = 'CONTACT API';
+                let badgeColor = '#f1f8e9'; // Greenish
+                let activityText = call.activity || '';
+                let detailsText = '';
+                let buttonText = 'Restore';
+                
+                if (apiType === 'activity') {
+                    apiLabel = 'ACTIVITY API';
+                    badgeColor = '#e3f2fd'; // Blueish
+                    detailsText = 'activities';
+                    buttonText = 'View cURL';
+                } else if (apiType === 'contact_v5') {
+                    apiLabel = 'CONTACT V5';
+                    badgeColor = '#fff3e0'; // Orangeish
+                    activityText = call.operation;
+                    detailsText = `${call.contactType}`;
+                } else {
+                    // Contact V2
+                    detailsText = `${Array.isArray(call.attributes) ? call.attributes.length : 0} attributes`;
+                    buttonText = 'Restore';
+                }
                 
                 return `
                     <div class="history-item" data-call-id="${call.id}" data-api-type="${apiType}" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fafafa;">
                         <div class="history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span class="history-time" style="font-size: 12px; color: #666;">${call.timestamp}</span>
-                            <span class="history-api-type" style="font-weight: bold; margin-left: 10px; padding: 2px 8px; background-color: ${apiType === 'activity' ? '#e3f2fd' : '#f1f8e9'}; border-radius: 3px;">${apiLabel}</span>
-                            <span class="history-activity" style="margin-left: 10px; font-weight: 500; flex: 1;">${call.activity}</span>
+                            <span class="history-api-type" style="font-weight: bold; margin-left: 10px; padding: 2px 8px; background-color: ${badgeColor}; border-radius: 3px;">${apiLabel}</span>
+                            <span class="history-activity" style="margin-left: 10px; font-weight: 500; flex: 1;">${activityText}</span>
                             <span class="history-status" style="margin-left: 10px; padding: 2px 8px; border-radius: 3px; background-color: ${call.status >= 200 && call.status < 300 ? '#c8e6c9' : '#ffcdd2'}; color: ${call.status >= 200 && call.status < 300 ? '#2e7d32' : '#c62828'}; font-weight: bold;">
                                 ${call.status}
                             </span>
                         </div>
                         <div class="history-details" style="margin-bottom: 8px;">
-                            <small style="color: #999;">${call.region} | ${attributesText} ${apiType === 'activity' ? 'activities' : 'attributes'}</small>
+                            <small style="color: #999;">${call.region} | ${detailsText}</small>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn-history-restore" data-call-id="${call.id}" style="padding: 6px 12px; background-color: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">${buttonText}</button>
@@ -1560,6 +1698,30 @@ class UIManager {
                 } else if (apiType === 'activity') {
                     // Generate cURL for Activity API from history
                     this.generateActivityCurlFromHistory(call);
+                } else if (apiType === 'contact_v5') {
+                    // Switch to V5 tab
+                    this.handleVersionSwitch('v5');
+                    
+                    if (call.region) document.getElementById('regionV5').value = call.region;
+                    if (call.operation) document.getElementById('operationV5').value = call.operation;
+                    if (call.contactType) document.getElementById('contactTypeV5').value = call.contactType;
+                    if (call.audienceId) document.getElementById('audienceIdV5').value = call.audienceId;
+                    if (call.identity) document.getElementById('identityV5').value = call.identity;
+                    
+                    // Clear and restore attributes
+                    document.getElementById('systemAttributesContainerV5').innerHTML = '';
+                    if (Array.isArray(call.systemAttributes)) {
+                        call.systemAttributes.forEach(attr => this.addAttributeRowV5('system', attr.key, attr.value, attr.dataType));
+                    }
+                    
+                    document.getElementById('customAttributesContainerV5').innerHTML = '';
+                    if (Array.isArray(call.customAttributes)) {
+                        call.customAttributes.forEach(attr => this.addAttributeRowV5('custom', attr.key, attr.value, attr.dataType));
+                    }
+                    
+                    this.toggleIdentityField(call.contactType || 'identified');
+                    this.saveFormState();
+                    Utils.showStatus(document.getElementById('statusMessage'), 'History restored!', 'success');
                 }
             }
         });
@@ -1633,6 +1795,189 @@ class UIManager {
         }
     }
 
+    // --- V5 Methods ---
+
+    /**
+     * Handle Contact API Version Switch
+     */
+    handleVersionSwitch(version) {
+        document.querySelectorAll('.api-type-btn[data-version]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.version === version);
+        });
+
+        document.getElementById('contact-v2-container').style.display = version === 'v2' ? 'block' : 'none';
+        document.getElementById('contact-v5-container').style.display = version === 'v5' ? 'block' : 'none';
+    }
+
+    /**
+     * Add attribute row for V5 (system or custom)
+     */
+    addAttributeRowV5(type, key = '', value = '', dataType = DATA_TYPES.string) {
+        const containerId = type === 'system' ? 'systemAttributesContainerV5' : 'customAttributesContainerV5';
+        const container = document.getElementById(containerId);
+        
+        const rowId = `attr-${Date.now()}-${Math.random()}`;
+        const row = document.createElement('div');
+        row.className = 'attribute-row';
+        row.id = rowId;
+        
+        row.innerHTML = `
+            <input type="text" class="attr-key" placeholder="${type === 'system' ? 'Key (e.g., email)' : 'Key (e.g., CITY)'}" value="${key}" style="flex: 1;">
+            <input type="text" class="attr-value" placeholder="Value" value="${value}" style="flex: 1;">
+            <select class="attr-type" style="flex: 0.8;">
+                <option value="${DATA_TYPES.string}" ${dataType === DATA_TYPES.string ? 'selected' : ''}>String</option>
+                <option value="${DATA_TYPES.float}" ${dataType === DATA_TYPES.float ? 'selected' : ''}>Float</option>
+                <option value="${DATA_TYPES.number}" ${dataType === DATA_TYPES.number ? 'selected' : ''}>Number</option>
+                <option value="${DATA_TYPES.date}" ${dataType === DATA_TYPES.date ? 'selected' : ''}>Date</option>
+            </select>
+            <button class="btn-remove" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 18px;">&times;</button>
+        `;
+
+        container.appendChild(row);
+
+        // Add listeners
+        row.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', () => this.saveFormState());
+        });
+        
+        // Auto-casing
+        const keyInput = row.querySelector('.attr-key');
+        keyInput.addEventListener('blur', (e) => {
+            if (type === 'system') e.target.value = e.target.value.toLowerCase();
+            if (type === 'custom') e.target.value = e.target.value.toUpperCase();
+            this.saveFormState();
+        });
+
+        row.querySelector('.btn-remove').addEventListener('click', () => {
+             row.remove();
+             this.saveFormState();
+        });
+    }
+
+    toggleIdentityField(type) {
+        const identityGroup = document.getElementById('identityV5Group');
+        if (identityGroup) {
+             identityGroup.style.display = type === 'identified' ? 'block' : 'none';
+        }
+    }
+    
+    toggleApiKeyVisibilityV5() {
+        const input = document.getElementById('apiKeyV5');
+        const btn = document.getElementById('toggleApiKeyV5');
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = 'Hide';
+        } else {
+            input.type = 'password';
+            btn.textContent = 'Show';
+        }
+    }
+
+    handleClearContactFormV5() {
+        if (confirm('Clear V5 form?')) {
+            document.getElementById('regionV5').value = '';
+            document.getElementById('apiKeyV5').value = '';
+            document.getElementById('operationV5').value = 'create';
+            document.getElementById('contactTypeV5').value = 'identified';
+            document.getElementById('audienceIdV5').value = '';
+            document.getElementById('identityV5').value = '';
+            document.getElementById('systemAttributesContainerV5').innerHTML = '';
+            document.getElementById('customAttributesContainerV5').innerHTML = '';
+            this.toggleIdentityField('identified');
+            this.saveFormState();
+        }
+    }
+
+    getV5FormData() {
+        const region = document.getElementById('regionV5').value;
+        const apiKey = document.getElementById('apiKeyV5').value;
+        const operation = document.getElementById('operationV5').value;
+        const contactType = document.getElementById('contactTypeV5').value;
+        const audienceId = document.getElementById('audienceIdV5').value;
+        const identity = document.getElementById('identityV5').value;
+
+        const systemAttributes = [];
+        document.querySelectorAll('#systemAttributesContainerV5 .attribute-row').forEach(row => {
+            const key = row.querySelector('.attr-key').value.toLowerCase();
+            const value = row.querySelector('.attr-value').value;
+            const type = row.querySelector('.attr-type').value;
+            if (key) systemAttributes.push({ key, value, type });
+        });
+
+        const customAttributes = [];
+        document.querySelectorAll('#customAttributesContainerV5 .attribute-row').forEach(row => {
+            const key = row.querySelector('.attr-key').value.toUpperCase();
+            const value = row.querySelector('.attr-value').value;
+            const type = row.querySelector('.attr-type').value;
+             if (key) customAttributes.push({ key, value, type });
+        });
+
+        return {
+            region, apiKey, operation, contactType, audienceId, identity, systemAttributes, customAttributes
+        };
+    }
+
+    handleGenerateCurlV5() {
+        const data = this.getV5FormData();
+        if (!data.region) {
+            Utils.showStatus(document.getElementById('statusMessage'), 'Region is required', 'error');
+            return;
+        }
+        if (!data.apiKey) {
+            Utils.showStatus(document.getElementById('statusMessage'), 'API Key is required', 'error');
+            return;
+        }
+        if (data.contactType === 'identified' && !data.identity) {
+             Utils.showStatus(document.getElementById('statusMessage'), 'Identity is required for identified contact', 'error');
+             return;
+        }
+
+        const payload = APIHandler.buildV5Payload(data);
+        const endpoint = `${CONTACT_V5_ENDPOINTS[data.region]}/${data.operation}`;
+
+        const curl = APIHandler.generateV5Curl(endpoint, data.apiKey, payload);
+        this.displayCurl(curl);
+        Utils.showStatus(document.getElementById('statusMessage'), 'cURL generated', 'success');
+    }
+
+    async handleTriggerAPIV5() {
+         const data = this.getV5FormData();
+         if (!data.region || !data.apiKey) {
+            Utils.showStatus(document.getElementById('statusMessage'), 'Region and API Key are required', 'error');
+            return;
+         }
+         if (data.contactType === 'identified' && !data.identity) {
+             Utils.showStatus(document.getElementById('statusMessage'), 'Identity is required for identified contact', 'error');
+             return;
+         }
+
+         const payload = APIHandler.buildV5Payload(data);
+         const endpoint = `${CONTACT_V5_ENDPOINTS[data.region]}/${data.operation}`;
+
+         try {
+             Utils.showStatus(document.getElementById('statusMessage'), 'Triggering V5 API...', 'info');
+             const response = await APIHandler.triggerV5API(endpoint, data.apiKey, payload);
+             const formatted = APIHandler.formatResponse(response);
+             this.displayResponse(formatted);
+             
+             this.addToHistory({
+                 apiType: 'contact_v5',
+                 region: data.region,
+                 operation: data.operation,
+                 contactType: data.contactType,
+                 audienceId: data.audienceId,
+                 identity: data.identity,
+                 systemAttributes: data.systemAttributes,
+                 customAttributes: data.customAttributes,
+                 status: 200
+             });
+             
+             Utils.showStatus(document.getElementById('statusMessage'), 'API Triggered', 'success');
+         } catch(e) {
+             Utils.showStatus(document.getElementById('statusMessage'), `Error: ${e.message}`, 'error', 4000);
+         }
+    }
+
     /**
      * Clear all history
      */
@@ -1642,5 +1987,54 @@ class UIManager {
             this.loadHistory();
             Utils.showStatus(document.getElementById('statusMessage'), 'History cleared!', 'success');
         }
+    }
+
+    handleContactPreviewV5() {
+        const data = this.getV5FormData();
+        
+        let tableHtml = `
+            <div style="margin-bottom: 15px;">
+                <strong>Contact Type:</strong> ${data.contactType}<br>
+                <strong>Operation:</strong> ${data.operation}<br>
+                ${data.contactType === 'identified' ? `<strong>Identity:</strong> ${data.identity}<br>` : ''}
+                <strong>Audience ID:</strong> ${data.audienceId || '1 (Default)'}
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Scope</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Attribute Name</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        if (data.systemAttributes) {
+            data.systemAttributes.forEach(attr => {
+                tableHtml += `
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">System</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.key}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        if (data.customAttributes) {
+            data.customAttributes.forEach(attr => {
+                tableHtml += `
+                    <tr style="background-color: #f9f9f9;">
+                         <td style="border: 1px solid #ddd; padding: 8px;">Custom</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.key}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${attr.value}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        tableHtml += `</tbody></table>`;
+        this.showPreviewModal('Contact V5 Preview', tableHtml);
     }
 }

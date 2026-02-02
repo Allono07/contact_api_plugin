@@ -38,72 +38,157 @@
 
                 <!-- Contact API Section -->
                 <div class="api-section active" id="contact-section">
-                    <!-- Region Selection -->
-                    <div class="form-group">
-                        <label for="region">Region *</label>
-                        <select id="region">
-                            <option value="">Select Region</option>
-                            <option value="us">US dashboard - pr17r (api)</option>
-                            <option value="in">India (apiin)</option>
-                            <option value="eu">EU (jsonapi.eu-north-1.eu)</option>
-                        </select>
+                    <!-- Version Selector -->
+                    <div class="api-type-selector" style="margin-bottom: 20px;">
+                        <button class="api-type-btn active" data-version="v2">V2 (Legacy)</button>
+                        <button class="api-type-btn" data-version="v5">V5 (New)</button>
                     </div>
 
-                    <!-- API Key -->
-                    <div class="form-group">
-                        <label for="apiKey">API Key *</label>
-                        <input type="password" id="apiKey" placeholder="Enter your API key">
-                        <button id="toggleApiKey" class="toggle-btn">Show</button>
-                    </div>
-
-                    <!-- Activity Selection -->
-                    <div class="form-group">
-                        <label for="activity">Activity *</label>
-                        <select id="activity">
-                            <option value="">Select Activity</option>
-                            <option value="add">Add</option>
-                            <option value="update">Update</option>
-                            <option value="delete">Delete</option>
-                            <option value="addsync">Add Sync (Synchronous API)</option>
-                        </select>
-                    </div>
-
-                    <!-- List ID -->
-                    <div class="form-group">
-                        <label for="listId">List ID (Optional)</label>
-                        <input type="number" id="listId" placeholder="Leave empty if not needed">
-                    </div>
-
-                    <!-- Primary Key Section -->
-                    <div class="form-group" style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 15px;">
-                        <label style="color: #2c3e50; font-weight: 600; margin-bottom: 8px; display: block;">Primary Key *</label>
-                        <div class="attribute-inputs" style="margin-bottom: 0; display: flex; gap: 8px;">
-                            <input type="text" id="primaryKey" placeholder="Key (e.g., EMAIL)" style="flex: 1;">
-                            <input type="text" id="primaryValue" placeholder="Value" style="flex: 1;">
-                            <select id="primaryType" style="flex: 0.8;">
-                                <option value="string">String</option>
-                                <option value="float">Float</option>
-                                <option value="number">Number</option>
-                                <option value="date">Date</option>
+                    <!-- V2 Container -->
+                    <div id="contact-v2-container">
+                        <!-- Region Selection -->
+                        <div class="form-group">
+                            <label for="region">Region *</label>
+                            <select id="region">
+                                <option value="">Select Region</option>
+                                <option value="us">US dashboard - pr17r (api)</option>
+                                <option value="in">India (apiin)</option>
+                                <option value="eu">EU (jsonapi.eu-north-1.eu)</option>
                             </select>
                         </div>
-                    </div>
 
-                    <!-- Dynamic Attributes Section -->
-                    <div class="form-group">
-                        <label>Contact Attributes</label>
-                        <div id="attributesContainer" class="attributes-container">
-                            <!-- Attributes will be added here dynamically -->
+                        <!-- API Key -->
+                        <div class="form-group">
+                            <label for="apiKey">API Key *</label>
+                            <input type="password" id="apiKey" placeholder="Enter your API key">
+                            <button id="toggleApiKey" class="toggle-btn">Show</button>
                         </div>
-                        <button id="addAttributeBtn" class="btn btn-secondary">+ Add Attribute</button>
+
+                        <!-- Activity Selection -->
+                        <div class="form-group">
+                            <label for="activity">Activity *</label>
+                            <select id="activity">
+                                <option value="">Select Activity</option>
+                                <option value="add">Add</option>
+                                <option value="update">Update</option>
+                                <option value="delete">Delete</option>
+                                <option value="addsync">Add Sync (Synchronous API)</option>
+                            </select>
+                        </div>
+
+                        <!-- List ID -->
+                        <div class="form-group">
+                            <label for="listId">List ID (Optional)</label>
+                            <input type="number" id="listId" placeholder="Leave empty if not needed">
+                        </div>
+
+                        <!-- Primary Key Section -->
+                        <div class="form-group" style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 15px;">
+                            <label style="color: #2c3e50; font-weight: 600; margin-bottom: 8px; display: block;">Primary Key *</label>
+                            <div class="attribute-inputs" style="margin-bottom: 0; display: flex; gap: 8px;">
+                                <input type="text" id="primaryKey" placeholder="Key (e.g., EMAIL)" style="flex: 1;">
+                                <input type="text" id="primaryValue" placeholder="Value" style="flex: 1;">
+                                <select id="primaryType" style="flex: 0.8;">
+                                    <option value="string">String</option>
+                                    <option value="float">Float</option>
+                                    <option value="number">Number</option>
+                                    <option value="date">Date</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Attributes Section -->
+                        <div class="form-group">
+                            <label>Contact Attributes</label>
+                            <div id="attributesContainer" class="attributes-container">
+                                <!-- Attributes will be added here dynamically -->
+                            </div>
+                            <button id="addAttributeBtn" class="btn btn-secondary">+ Add Attribute</button>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="actions">
+                            <button id="generateCurlBtn" class="btn btn-primary">Generate cURL</button>
+                            <button id="triggerApiBtn" class="btn btn-success">Trigger API</button>
+                            <button id="previewContactBtn" class="btn btn-info" style="background-color: #17a2b8; color: white;">Preview</button>
+                            <button id="clearContactFormBtn" class="btn btn-danger">Clear Form</button>
+                        </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="actions">
-                        <button id="generateCurlBtn" class="btn btn-primary">Generate cURL</button>
-                        <button id="triggerApiBtn" class="btn btn-success">Trigger API</button>
-                        <button id="previewContactBtn" class="btn btn-info" style="background-color: #17a2b8; color: white;">Preview</button>
-                        <button id="clearContactFormBtn" class="btn btn-danger">Clear Form</button>
+                    <!-- V5 Container -->
+                    <div id="contact-v5-container" style="display: none;">
+                        <!-- Region Selection -->
+                        <div class="form-group">
+                            <label for="regionV5">Region *</label>
+                            <select id="regionV5">
+                                <option value="">Select Region</option>
+                                <option value="us">US dashboard (v5)</option>
+                                <!-- Other regions will be added later -->
+                            </select>
+                        </div>
+
+                        <!-- API Key -->
+                        <div class="form-group">
+                            <label for="apiKeyV5">API Key *</label>
+                            <input type="password" id="apiKeyV5" placeholder="Enter your API key">
+                            <button id="toggleApiKeyV5" class="toggle-btn">Show</button>
+                        </div>
+
+                        <!-- Operation -->
+                        <div class="form-group">
+                            <label for="operationV5">Operation *</label>
+                            <select id="operationV5">
+                                <option value="create">Create</option>
+                                <option value="update">Update</option>
+                            </select>
+                        </div>
+
+                        <!-- Contact Type -->
+                        <div class="form-group">
+                            <label for="contactTypeV5">Contact Type *</label>
+                            <select id="contactTypeV5">
+                                <option value="identified">Identified</option>
+                                <option value="anonymous">Anonymous</option>
+                            </select>
+                        </div>
+
+                         <!-- Audience ID -->
+                        <div class="form-group">
+                            <label for="audienceIdV5">Audience ID (Optional, Default: 1)</label>
+                            <input type="number" id="audienceIdV5" placeholder="1">
+                        </div>
+
+                        <!-- Identity (Required for Identified) -->
+                        <div class="form-group" id="identityV5Group">
+                            <label for="identityV5">Identity *</label>
+                            <input type="text" id="identityV5" placeholder="identity_value">
+                        </div>
+
+                        <!-- System Attributes -->
+                        <div class="form-group">
+                            <label>System Attributes</label>
+                            <div id="systemAttributesContainerV5" class="attributes-container">
+                                <!-- Dynamic rows -->
+                            </div>
+                            <button id="addSystemAttributeBtn" class="btn btn-secondary">+ Add System Attribute</button>
+                        </div>
+
+                        <!-- Custom Attributes -->
+                        <div class="form-group">
+                            <label>Custom Attributes </label>
+                            <div id="customAttributesContainerV5" class="attributes-container">
+                                <!-- Dynamic rows -->
+                            </div>
+                            <button id="addCustomAttributeBtn" class="btn btn-secondary">+ Add Custom Attribute</button>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="actions">
+                            <button id="generateCurlBtnV5" class="btn btn-primary">Generate cURL</button>
+                            <button id="triggerApiBtnV5" class="btn btn-success">Trigger API</button>
+                            <button id="previewContactBtnV5" class="btn btn-info" style="background-color: #17a2b8; color: white;">Preview</button>
+                            <button id="clearContactFormBtnV5" class="btn btn-danger">Clear Form</button>
+                        </div>
                     </div>
                 </div>
 
@@ -194,6 +279,7 @@
                 <div class="curl-actions">
                     <button id="triggerCurlBtn" class="btn btn-small btn-success">Trigger</button>
                     <button id="copyCurlBtn" class="btn btn-small">Copy</button>
+                    <button id="closeCurlBtn" class="btn btn-small" style="background-color: #6c757d; color: white;">×</button>
                 </div>
             </div>
             <textarea id="curlOutput" class="curl-output"></textarea>

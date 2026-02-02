@@ -12,6 +12,12 @@ const ACTIVITY_ENDPOINTS = {
     eu: 'https://apieu2.netcoresmartech.com/v1/activity/upload'
 };
 
+const CONTACT_V5_ENDPOINTS = {
+    us: 'https://netcoreapi-main-prod-us.netcorein.com/v5/contact',
+    in: '', // To be added
+    eu: ''  // To be added
+};
+
 const ACTIVITIES = {
     add: { value: 'add', label: 'Add', isSync: false },
     update: { value: 'update', label: 'Update', isSync: false },

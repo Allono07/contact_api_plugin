@@ -19,6 +19,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ success: false, error: error.message });
             });
         return true;
+    } else if (request.action === 'triggerV5API') {
+        triggerV5APIRequest(request.endpoint, request.apiKey, request.payload)
+            .then(response => {
+                sendResponse({ success: true, data: response });
+            })
+            .catch(error => {
+                sendResponse({ success: false, error: error.message });
+            });
+        return true;
     }
 });
 
@@ -118,5 +127,42 @@ async function triggerActivityAPIRequest(endpoint, bearerToken, payload) {
         console.error('Error Message:', error.message);
         console.error('Error Stack:', error.stack);
         throw new Error(`Activity API request failed: ${error.message}`);
+    }
+}
+
+/**
+ * Trigger V5 API request
+ */
+async function triggerV5APIRequest(endpoint, apiKey, payload) {
+    console.log('=== V5 API REQUEST ===');
+    console.log('Endpoint:', endpoint);
+    console.log('API Key present:', !!apiKey);
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+    
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const responseBody = await response.text();
+        
+        console.log('=== V5 API RESPONSE ===');
+        console.log('Status:', response.status);
+        
+        return {
+            status: response.status,
+            statusText: response.statusText,
+            body: responseBody
+        };
+    } catch (error) {
+        console.error('=== V5 API ERROR ===');
+        console.error('Error Message:', error.message);
+        throw new Error(`V5 API request failed: ${error.message}`);
     }
 }
