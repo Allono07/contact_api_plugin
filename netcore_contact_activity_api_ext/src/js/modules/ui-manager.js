@@ -85,6 +85,19 @@ class UIManager {
         if (uploadCsvBtn) uploadCsvBtn.addEventListener('click', () => this.handleCSVUpload());
         if (clearActivityFormBtn) clearActivityFormBtn.addEventListener('click', () => this.handleClearActivityForm());
 
+        const addActivitySystemAttributeBtn = document.getElementById('addActivitySystemAttributeBtn');
+        const activityContactType = document.getElementById('activityContactType');
+        const activityAnonId = document.getElementById('activityAnonId');
+
+        if (addActivitySystemAttributeBtn) addActivitySystemAttributeBtn.addEventListener('click', () => this.addActivitySystemAttributeRow());
+        if (activityContactType) {
+            activityContactType.addEventListener('change', (e) => {
+                this.toggleActivityIdentityField(e.target.value);
+                this.saveFormState();
+            });
+        }
+        if (activityAnonId) activityAnonId.addEventListener('change', () => this.saveFormState());
+
         // Response listeners
         document.getElementById('copyCurlBtn').addEventListener('click', () => this.handleCopyCurl());
         document.getElementById('triggerCurlBtn').addEventListener('click', () => this.handleTriggerCurl());
@@ -175,7 +188,7 @@ class UIManager {
                     <option value="${DATA_TYPES.array}" ${dataType === DATA_TYPES.array ? 'selected' : ''}>Array (JSON)</option>
                 </select>
                 <button class="btn-array-builder" data-param-id="${paramId}" style="display: ${dataType === DATA_TYPES.array ? 'inline-block' : 'none'};">Array Builder</button>
-                <button class="btn-remove-param" data-param-id="${paramId}">Remove</button>
+                <button class="btn-remove-param" data-param-id="${paramId}" title="Remove Parameter">&times;</button>
             </div>
             <div class="array-items-container" id="array-items-${paramId}" style="display: ${dataType === DATA_TYPES.array ? 'block' : 'none'}; margin-left: 20px; margin-top: 10px;"></div>
         `;
@@ -647,6 +660,57 @@ class UIManager {
     }
 
     /**
+     * Add Activity System Attribute Row
+     */
+    addActivitySystemAttributeRow(key = '', value = '', dataType = DATA_TYPES.string) {
+        const container = document.getElementById('activitySystemAttributesContainer');
+        if (!container) return;
+
+        const rowId = `act-sys-attr-${Date.now()}-${Math.random()}`;
+        const row = document.createElement('div');
+        row.className = 'attribute-row';
+        row.id = rowId;
+        
+        row.innerHTML = `
+            <input type="text" class="attr-key" placeholder="Key (e.g., email)" value="${key}" style="flex: 1;">
+            <input type="text" class="attr-value" placeholder="Value" value="${value}" style="flex: 1;">
+            <select class="attr-type" style="flex: 0.8;">
+                 <option value="${DATA_TYPES.string}" ${dataType === DATA_TYPES.string ? 'selected' : ''}>String</option>
+                 <option value="${DATA_TYPES.number}" ${dataType === DATA_TYPES.number ? 'selected' : ''}>Number</option>
+                 <option value="${DATA_TYPES.float}" ${dataType === DATA_TYPES.float ? 'selected' : ''}>Float</option>
+                 <option value="${DATA_TYPES.date}" ${dataType === DATA_TYPES.date ? 'selected' : ''}>Date</option>
+            </select>
+            <button class="btn-remove" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 18px;">&times;</button>
+        `;
+
+        container.appendChild(row);
+        
+        // Listeners
+        row.querySelectorAll('input, select').forEach(el => el.addEventListener('change', () => this.saveFormState()));
+
+        // Auto-lowercase key
+        const keyInput = row.querySelector('.attr-key');
+        keyInput.addEventListener('blur', (e) => {
+            e.target.value = e.target.value.toLowerCase();
+            this.saveFormState();
+        });
+
+        row.querySelector('.btn-remove').addEventListener('click', () => {
+             row.remove();
+             this.saveFormState();
+        });
+    }
+
+    toggleActivityIdentityField(type) {
+        const identityGroup = document.getElementById('activityIdentityGroup');
+        const anonIdGroup = document.getElementById('activityAnonIdGroup');
+        if (identityGroup && anonIdGroup) {
+            identityGroup.style.display = type === 'identified' ? 'block' : 'none';
+            anonIdGroup.style.display = type === 'anonymous' ? 'block' : 'none';
+        }
+    }
+
+    /**
      * Handle Generate Activity cURL
      */
     handleGenerateActivityCurl() {
@@ -656,14 +720,22 @@ class UIManager {
             const bearerToken = document.getElementById('activityApiKey').value.trim();
             const region = document.getElementById('activityRegion').value;
             const assetId = document.getElementById('assetId').value.trim();
-            const identity = document.getElementById('identity').value.trim();
             const activitySource = document.getElementById('activitySource').value;
+             // New fields
+            const contactType = document.getElementById('activityContactType').value; // 'identified' or 'anonymous'
+            let identity = document.getElementById('identity').value.trim();
+            let anonId = document.getElementById('activityAnonId').value.trim();
 
             const errors = [];
             if (!bearerToken) errors.push('Bearer token is required');
             if (!region) errors.push('Region is required');
             if (!assetId) errors.push('Asset ID is required');
-            if (!identity) errors.push('Identity is required');
+             if (contactType === 'identified' && !identity) {
+                errors.push('Identity is required for identified user');
+            }
+             if (contactType === 'anonymous' && !anonId) {
+                errors.push('Anonymous ID is required for anonymous user');
+            }
             if (!activitySource) errors.push('Activity source is required');
 
             if (errors.length > 0) {
@@ -671,13 +743,29 @@ class UIManager {
                 return;
             }
 
+            // Adjust identity/anonId for payload
+            if (contactType === 'anonymous') {
+                identity = ""; 
+            } else {
+                anonId = "";
+            }
+
+            // Get System Attributes
+            const systemAttributes = [];
+            document.querySelectorAll('#activitySystemAttributesContainer .attribute-row').forEach(row => {
+                const key = row.querySelector('.attr-key').value; 
+                const value = row.querySelector('.attr-value').value;
+                const dataType = row.querySelector('.attr-type').value;
+                if (key) systemAttributes.push({ key, value, dataType });
+            });
+
             const activities = this.getActivities();
             if (activities.length === 0) {
                 Utils.showStatus(statusMessage, 'At least one activity with a name is required', 'error', 4000);
                 return;
             }
 
-            const payload = APIHandler.buildActivityPayload(assetId, identity, activitySource, activities);
+            const payload = APIHandler.buildActivityPayload(assetId, identity, anonId, activitySource, activities, systemAttributes);
             const curl = APIHandler.generateActivityCurl(bearerToken, region, payload);
 
             this.displayCurl(curl);
@@ -697,14 +785,23 @@ class UIManager {
             const bearerToken = document.getElementById('activityApiKey').value.trim();
             const region = document.getElementById('activityRegion').value;
             const assetId = document.getElementById('assetId').value.trim();
-            const identity = document.getElementById('identity').value.trim();
             const activitySource = document.getElementById('activitySource').value;
+            
+             // New fields
+            const contactType = document.getElementById('activityContactType').value;
+            let identity = document.getElementById('identity').value.trim();
+            let anonId = document.getElementById('activityAnonId').value.trim();
 
             const errors = [];
             if (!bearerToken) errors.push('Bearer token is required');
             if (!region) errors.push('Region is required');
             if (!assetId) errors.push('Asset ID is required');
-            if (!identity) errors.push('Identity is required');
+             if (contactType === 'identified' && !identity) {
+                errors.push('Identity is required for identified user');
+            }
+             if (contactType === 'anonymous' && !anonId) {
+                errors.push('Anonymous ID is required for anonymous user');
+            }
             if (!activitySource) errors.push('Activity source is required');
 
             if (errors.length > 0) {
@@ -712,13 +809,29 @@ class UIManager {
                 return;
             }
 
+            // Adjust identity/anonId for payload
+            if (contactType === 'anonymous') {
+                identity = ""; 
+            } else {
+                anonId = "";
+            }
+
+            // Get System Attributes
+            const systemAttributes = [];
+            document.querySelectorAll('#activitySystemAttributesContainer .attribute-row').forEach(row => {
+                const key = row.querySelector('.attr-key').value; 
+                const value = row.querySelector('.attr-value').value;
+                const dataType = row.querySelector('.attr-type').value;
+                if (key) systemAttributes.push({ key, value, dataType });
+            });
+
             const activities = this.getActivities();
             if (activities.length === 0) {
                 Utils.showStatus(statusMessage, 'At least one activity with a name is required', 'error', 4000);
                 return;
             }
 
-            const payload = APIHandler.buildActivityPayload(assetId, identity, activitySource, activities);
+            const payload = APIHandler.buildActivityPayload(assetId, identity, anonId, activitySource, activities, systemAttributes);
 
             Utils.showStatus(statusMessage, 'Triggering Activity API...', 'info');
 
@@ -744,7 +857,11 @@ class UIManager {
                 historyPayload: historyPayload,
                 attributes: activities.map(a => a.activity_name),
                 response: formattedResponse.body,
-                status: formattedResponse.status
+                status: formattedResponse.status,
+                // store new fields
+                contactType: contactType,
+                anonId: anonId,
+                systemAttributes: systemAttributes
             });
             this.displayResponse(formattedResponse);
             Utils.showStatus(statusMessage, 'Activity API triggered successfully!', 'success');
@@ -1387,6 +1504,27 @@ class UIManager {
      */
     getActivityFormData() {
         const activities = [];
+        const bearerToken = document.getElementById('activityApiKey').value;
+        const region = document.getElementById('activityRegion').value;
+        const assetId = document.getElementById('assetId').value;
+        const activitySource = document.getElementById('activitySource').value;
+        
+        // New Fields
+        const contactType = document.getElementById('activityContactType') ? document.getElementById('activityContactType').value : 'identified';
+        const identity = document.getElementById('identity').value;
+        const anonId = document.getElementById('activityAnonId') ? document.getElementById('activityAnonId').value : '';
+
+        // System Attributes
+        const systemAttributes = [];
+        const sysContainer = document.getElementById('activitySystemAttributesContainer');
+        if (sysContainer) {
+            sysContainer.querySelectorAll('.attribute-row').forEach(row => {
+                const key = row.querySelector('.attr-key').value;
+                const value = row.querySelector('.attr-value').value;
+                const type = row.querySelector('.attr-type').value;
+                if (key) systemAttributes.push({ key, value, type });
+            });
+        }
         
         const activitiesContainer = document.getElementById('activitiesContainer');
         if (!activitiesContainer) return null;
@@ -1438,12 +1576,15 @@ class UIManager {
         });
 
         return {
-            bearerToken: document.getElementById('activityApiKey')?.value || '',
-            region: document.getElementById('activityRegion')?.value || '',
-            assetId: document.getElementById('assetId')?.value || '',
-            identity: document.getElementById('identity')?.value || '',
-            activitySource: document.getElementById('activitySource')?.value || '',
-            activities: activities
+            bearerToken,
+            region,
+            assetId,
+            identity,
+            activitySource,
+            activities,
+            contactType,
+            anonId,
+            systemAttributes
         };
     }
 
@@ -1515,12 +1656,30 @@ class UIManager {
                 const identity = document.getElementById('identity');
                 const activitySource = document.getElementById('activitySource');
                 const activitiesContainer = document.getElementById('activitiesContainer');
+                
+                // New Fields
+                const activityContactType = document.getElementById('activityContactType');
+                const activityAnonId = document.getElementById('activityAnonId');
+                const activitySystemAttributesContainer = document.getElementById('activitySystemAttributesContainer');
 
                 if (activityApiKey) activityApiKey.value = actData.bearerToken || '';
                 if (activityRegion) activityRegion.value = actData.region || '';
                 if (assetId) assetId.value = actData.assetId || '';
                 if (identity) identity.value = actData.identity || '';
                 if (activitySource) activitySource.value = actData.activitySource || '';
+                
+                if (activityContactType) {
+                    activityContactType.value = actData.contactType || 'identified';
+                    this.toggleActivityIdentityField(actData.contactType || 'identified');
+                }
+                if (activityAnonId) activityAnonId.value = actData.anonId || '';
+                
+                if (activitySystemAttributesContainer && actData.systemAttributes) {
+                    activitySystemAttributesContainer.innerHTML = '';
+                    actData.systemAttributes.forEach(attr => {
+                        this.addActivitySystemAttributeRow(attr.key, attr.value, attr.type);
+                    });
+                }
 
                 if (activitiesContainer && actData.activities && actData.activities.length > 0) {
                     activitiesContainer.innerHTML = '';
@@ -1712,6 +1871,18 @@ class UIManager {
                     if (call.listId) document.getElementById('assetId').value = call.listId; // assetId was stored as listId
                     if (call.identity) document.getElementById('identity').value = call.identity;
                     if (call.activitySource) document.getElementById('activitySource').value = call.activitySource;
+                    
+                    if (call.contactType) document.getElementById('activityContactType').value = call.contactType;
+                    if (call.anonId) document.getElementById('activityAnonId').value = call.anonId;
+                    this.toggleActivityIdentityField(call.contactType || 'identified');
+
+                     if (call.systemAttributes && Array.isArray(call.systemAttributes)) {
+                          const container = document.getElementById('activitySystemAttributesContainer');
+                          if (container) {
+                              container.innerHTML = '';
+                              call.systemAttributes.forEach(attr => this.addActivitySystemAttributeRow(attr.key, attr.value, attr.dataType));
+                          }
+                     }
                     
                     if (call.activities && call.activities.length > 0) {
                          const container = document.getElementById('activitiesContainer');

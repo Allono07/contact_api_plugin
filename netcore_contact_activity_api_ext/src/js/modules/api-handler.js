@@ -137,19 +137,38 @@ class APIHandler {
      * @param {string} activitySource - Static activity source (app/web)
      * @param {Array} activities - Array of activity objects with activity_name and activity_params
      */
-    static buildActivityPayload(assetId, identity, activitySource, activities) {
+    static buildActivityPayload(assetId, identity, anonId, activitySource, activities, systemAttributes = []) {
+        // Use local time instead of UTC
         const now = new Date();
-        const timestamp = now.toISOString().slice(0, 19);
+        const pad = (n) => n.toString().padStart(2, '0');
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
         // Build payload array with all activities
-        return activities.map(activity => ({
-            asset_id: assetId,
-            activity_name: activity.activity_name,
-            timestamp: timestamp,
-            identity: identity,
-            activity_source: activitySource,
-            activity_params: activity.activity_params
-        }));
+        return activities.map(activity => {
+            const item = {
+                asset_id: assetId,
+                activity_name: activity.activity_name,
+                timestamp: timestamp,
+                identity: identity,
+                activity_source: activitySource,
+                activity_params: activity.activity_params
+            };
+
+            if (anonId) {
+                item.anonid = anonId;
+            }
+
+            // Add system attributes
+            systemAttributes.forEach(attr => {
+                 let val = attr.value;
+                 if (attr.dataType === 'number' || attr.dataType === 'float') {
+                     val = Number(val);
+                 }
+                 item[attr.key] = val;
+            });
+
+            return item;
+        });
     }
 
     /**

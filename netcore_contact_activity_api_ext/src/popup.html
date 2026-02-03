@@ -218,10 +218,34 @@
                         <input type="text" id="assetId" placeholder="Enter asset ID">
                     </div>
 
-                    <!-- Identity -->
+                    <!-- Contact Type -->
                     <div class="form-group">
+                        <label for="activityContactType">User Type *</label>
+                        <select id="activityContactType">
+                            <option value="identified">Identified</option>
+                            <option value="anonymous">Anonymous</option>
+                        </select>
+                    </div>
+
+                    <!-- Identity -->
+                    <div class="form-group" id="activityIdentityGroup">
                         <label for="identity">Identity *</label>
                         <input type="text" id="identity" placeholder="Enter identity (phone/email)">
+                    </div>
+
+                    <!-- Anon ID -->
+                     <div class="form-group" id="activityAnonIdGroup" style="display: none;">
+                        <label for="activityAnonId">Anonymous ID *</label>
+                        <input type="text" id="activityAnonId" placeholder="Enter anonymous ID">
+                    </div>
+
+                    <!-- System Attributes -->
+                    <div class="form-group">
+                        <label>System Attributes</label>
+                        <div id="activitySystemAttributesContainer" class="attributes-container">
+                            <!-- Dynamic rows -->
+                        </div>
+                        <button id="addActivitySystemAttributeBtn" class="btn btn-secondary">+ Add System Attribute</button>
                     </div>
 
                     <!-- Activity Source -->
