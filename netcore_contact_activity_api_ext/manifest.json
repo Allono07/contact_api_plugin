@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Netcore Contact/Activity API",
-  "version": "1.0.1",
-  "description": "Create and trigger Netcore Contact/Activity API requests with custom curl generation",
+  "version": "1.0.2",
+  "description": "Create and trigger Netcore Contact/Activity API requests with custom curl generation. v2/v5 Supported.",
   "permissions": [
     "storage"
   ],
@@ -11,7 +11,9 @@
     "https://apiin.netcoresmartech.com/*",
     "https://jsonapi.eu-north-1.eu.netcoresmartech.com/*",
     "https://api2.netcoresmartech.com/*",
-    "https://netcoreapi-main-prod-us.netcorein.com/*"
+    "https://netcoreapi-main-prod-us.netcorein.com/*",
+    "https://netcoreapi-main-prod-ind.netcorein.com/*",
+    "https://netcoreapi-main-prod-eu.netcorein.com/*"
   ],
   "action": {
     "default_popup": "src/popup.html",

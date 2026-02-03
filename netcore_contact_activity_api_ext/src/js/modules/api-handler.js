@@ -141,7 +141,7 @@ class APIHandler {
         // Use local time instead of UTC
         const now = new Date();
         const pad = (n) => n.toString().padStart(2, '0');
-        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`+'Z';
 
         // Build payload array with all activities
         return activities.map(activity => {
@@ -181,7 +181,7 @@ class APIHandler {
         let curl = `curl --location '${endpoint}' \\`;
         curl += `\n  --header 'Authorization: Bearer ${bearerToken}' \\`;
         curl += `\n  --header 'Content-Type: application/json' \\`;
-        curl += `\n  --data '${payloadStr}'`;
+        curl += `\n  --data-raw '${payloadStr}'`;
 
         return curl;
     }

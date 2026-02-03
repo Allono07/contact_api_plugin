@@ -14,8 +14,8 @@ const ACTIVITY_ENDPOINTS = {
 
 const CONTACT_V5_ENDPOINTS = {
     us: 'https://netcoreapi-main-prod-us.netcorein.com/v5/contact',
-    in: '', // To be added
-    eu: ''  // To be added
+    in: 'https://netcoreapi-main-prod-ind.netcorein.com/v5/contact', // To be added
+    eu: 'https://netcoreapi-main-prod-eu.netcorein.com/v5/contact'  // To be added
 };
 
 const ACTIVITIES = {
